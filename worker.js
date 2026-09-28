@@ -14,9 +14,21 @@ export default {
         return respond(res);
       }
 
+      if (path === "/groq-stt") {
+        const res = await fetch("https://api.groq.com/openai/v1/audio/transcriptions", {
+          method: "POST",
+          headers: {
+            "Authorization": `Bearer ${env.GROQ_API_KEY}`,
+            "Content-Type": request.headers.get("Content-Type")
+          },
+          body: request.body
+        });
+        return respond(res);
+      }
+
       if (path === "/elevenlabs") {
         const body = await request.text();
-        const voiceId = url.searchParams.get("voice_id") || "21m00Tcm4TlvDq8ikWAM";
+        const voiceId = url.searchParams.get("voice_id") || "EXAVITQu4vr4xnSDxMaL";
         const res = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`, {
           method: "POST",
           headers: { "Content-Type": "application/json", "xi-api-key": env.ELEVENLABS_API_KEY },
@@ -35,6 +47,18 @@ export default {
         return respond(res);
       }
 
+      if (path === "/sarvam-stt") {
+        const res = await fetch("https://api.sarvam.ai/speech-to-text", {
+          method: "POST",
+          headers: {
+            "API-Subscription-Key": env.SARVAM_API_KEY,
+            "Content-Type": request.headers.get("Content-Type")
+          },
+          body: request.body
+        });
+        return respond(res);
+      }
+
       if (path === "/serper") {
         const body = await request.text();
         const res = await fetch("https://google.serper.dev/search", {
@@ -45,14 +69,6 @@ export default {
         return respond(res);
       }
 
-      if (path === "/youtube") {
-        const target = new URL("https://www.googleapis.com" + url.searchParams.get("path"));
-        url.searchParams.forEach((v, k) => { if (k !== "path") target.searchParams.set(k, v); });
-        target.searchParams.set("key", env.YOUTUBE_API_KEY);
-        const res = await fetch(target.toString());
-        return respond(res);
-      }
-
       return new Response("Not found", { status: 404 });
     } catch (e) {
       return new Response("Proxy error: " + e.message, { status: 500 });
@@ -60,10 +76,12 @@ export default {
   }
 };
 
-async function respond(res) {
-  const data = await res.text();
-  return new Response(data, {
+function respond(res) {
+  return new Response(res.body, {
     status: res.status,
-    headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" }
+    headers: {
+      "Content-Type": res.headers.get("Content-Type") || "application/json",
+      "Access-Control-Allow-Origin": "*"
+    }
   });
-          }
+}
