@@ -1,5 +1,18 @@
 export default {
   async fetch(request, env) {
+    // 1. CORS Preflight for browser web chat
+    if (request.method === "OPTIONS") {
+      return new Response(null, {
+        status: 204,
+        headers: {
+          "Access-Control-Allow-Origin": "*",
+          "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+          "Access-Control-Allow-Headers": "Content-Type, Authorization, API-Subscription-Key, X-API-KEY",
+          "Access-Control-Max-Age": "86400"
+        }
+      });
+    }
+
     const url = new URL(request.url);
     const path = url.pathname;
 
