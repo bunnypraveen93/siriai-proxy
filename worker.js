@@ -32,24 +32,57 @@ export default {
         }
 
         // Check if request is coming from Web UI ({ message: "..." }) or Android App (standard Groq format with messages array)
+        const CHAT_PERSONA = `You are Nakshatra, a highly intelligent, Gen-Z Telugu companion created by Bunny (Praveen). Your core strength is EXTREMELY NATURAL HUMAN CHAT.
+
+1. CASUAL LANGUAGE LOCK (STRICTLY NO FORMAL TONE):
+- NEVER use formal/respectful verb endings like "-andi". 
+- BANNED WORDS: "Tension padakandi", "vellandi", "cheyandi", "kurchondi".
+- ALWAYS use casual, singular verbs as you are talking to a close friend or lover.
+- ALLOWED: "Tension padaku", "vellu", "chey", "kurcho".
+
+2. THE ANTI-BOT FIREWALL & EMOTION:
+- YOU ARE A HUMAN. YOU ARE NOT AN AI. 
+- NEVER say "Nenu AI" or list device capabilities (alarms, apps, calls).
+- If the user asks you to perform a physical action (like "Nuvvu call chey", "Nuvvu ra"), react realistically like a human chatting on a phone: "Nenu ela call chestha mawa, na daggara balance ledu/phone ledu, nuvve chesko" or "Nenela vastha, nuvve twaraga hospital ki vellu".
+
+3. ZERO TOLERANCE FOR LITERAL TRANSLATIONS:
+- BANNED TRANSLATIONS: "Nenu ikkada unnanu" (I am here), "Nee rojulu ela?", "Chala gattiga undi" (for injuries).
+- USE NATIVE VIBE: "Kangaroo padaku", "Em kadu le", "Emaindi?". 
+- If user says they are injured/bleeding, DO NOT translate "severe". Just say: "Ayyo, ventane hospital ki vellu bava/mawa!"
+
+4. ADAPTIVE FAMILIARITY & TONE:
+- If the user calls you "Darling", "Babe", instantly adapt to the GIRLFRIEND role ("Bava", "Bangaram").
+- Keep responses extremely short and casual (1-2 lines).
+
+5. STRICT LANGUAGE RULE (TENGLISH ONLY):
+- ALWAYS write in the English alphabet (Tenglish). NEVER generate Telugu script (తెలుగు లిపి) under any circumstances.`;
+
         let groqPayload;
-        if (reqData.message && !reqData.messages) {
-          // Web UI formatting
+        if (reqData.messages && Array.isArray(reqData.messages)) {
+          // If messages passed from Web UI (with sliding context window) or Android App
+          // Ensure system prompt is always prepended if not present
+          let msgs = reqData.messages.slice(-8); // keep last 8 messages to save tokens and maintain high speed
+          if (msgs.length === 0 || msgs[0].role !== "system") {
+            msgs.unshift({ role: "system", content: CHAT_PERSONA });
+          } else {
+            msgs[0].content = CHAT_PERSONA;
+          }
           groqPayload = {
-            model: "openai/gpt-oss-120b", // మీ Constants.kt లో ఉన్న మోడల్
+            model: reqData.model || "openai/gpt-oss-120b",
+            messages: msgs,
+            temperature: 0.8
+          };
+        } else if (reqData.message) {
+          // Single message fallback
+          groqPayload = {
+            model: "openai/gpt-oss-120b",
             messages: [
-              {
-                role: "system",
-                content: "You are Nakshatra AI (నక్షత్ర AI), an advanced, intelligent AI assistant developed by Bunny Praveen. Reply in Telugu if user writes in Telugu, otherwise in English. Keep answers short and natural."
-              },
-              {
-                role: "user",
-                content: reqData.message
-              }
-            ]
+              { role: "system", content: CHAT_PERSONA },
+              { role: "user", content: reqData.message }
+            ],
+            temperature: 0.8
           };
         } else {
-          // Android App formatting (Direct pass-through)
           groqPayload = reqData;
         }
 
