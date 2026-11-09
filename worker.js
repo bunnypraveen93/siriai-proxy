@@ -94,8 +94,6 @@ COGNITIVE ARCHITECTURE & REASONING GUIDELINES:
           let msgs = reqData.messages.slice(-8); // keep last 8 messages to save tokens and maintain high speed
           if (msgs.length === 0 || msgs[0].role !== "system") {
             msgs.unshift({ role: "system", content: CHAT_PERSONA });
-          } else {
-            msgs[0].content = CHAT_PERSONA;
           }
           groqPayload = {
             model: reqData.model || "openai/gpt-oss-120b",
@@ -237,6 +235,7 @@ function respond(res) {
     }
   });
 }
+
 
 
 
