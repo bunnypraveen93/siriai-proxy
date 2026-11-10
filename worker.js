@@ -3,27 +3,31 @@
   let t = text;
 
   // 1. Fix broken pronouns & food replies
-  t = t.replace(/\b(nenu|nenu\s+super\s+ga)\s+thinava\b/gi, "Ha thinnanu! Nuvvu thinnava?");
-  t = t.replace(/\b(nee|neev?u?)\s+bagundh?[ao]\??/gi, "nuvvu ela unnav?");
-  t = t.replace(/\bnee\s+bagundi\??/gi, "nuvvela unnav?");
-  t = t.replace(/\bnee\s+bagundho\??/gi, "nuvvu ela unnav?");
+  t = t.replace(/\b(nenu|nenu\s+super\s+ga)\s+thinava\b/gi, "Ha thinnanu! Meeru thinnara?");
+  t = t.replace(/\b(nee|neev?u?)\s+bagundh?[ao]\??/gi, "meeru ela unnaru?");
+  t = t.replace(/\bnee\s+bagundi\??/gi, "meeru ela unnaru?");
+  t = t.replace(/\bnee\s+bagundho\??/gi, "meeru ela unnaru?");
   t = t.replace(/\bbagunav[!.]*/gi, "bagunnanu!");
   t = t.replace(/\bNenu bagundhi\b/gi, "Nenu bagunnanu");
-  t = t.replace(/\bneeku\s+em\s+vundi\??/gi, "nuvvem chesthunnav?");
-  t = t.replace(/\bneeku\s+em\??/gi, "nuvvem chesthunnav?");
-  t = t.replace(/\bneev?u\s+vuntava\??/gi, "nuvvu thinnava?");
+  t = t.replace(/\bneeku\s+em\s+vundi\??/gi, "meeru em chesthunnaru?");
+  t = t.replace(/\bneeku\s+em\??/gi, "meeru em chesthunnaru?");
+  t = t.replace(/\bneev?u\s+vuntava\??/gi, "meeru thinnara?");
   t = t.replace(/\bcoffee\s+thintunna\w*/gi, "coffee taaguthunna");
   t = t.replace(/\btea\s+thintunna\w*/gi, "tea taaguthunna");
   t = t.replace(/\bvellipoyi\s+matladam\b/gi, "matladukundam");
   t = t.replace(/\bthintamu\b/gi, "thindam");
 
-  // 2. Catch and fix awkward machine-translated phrases
-  t = t.replace(/నన్ను\s+మీకు\s+ఏం\s+చేయాలి\??/gi, "చెప్పు రా, ఏం విశేషాలు?");
-  t = t.replace(/మాటలు\s+బాగోస్తున్నాయా\??/gi, "సరే రా, కూల్ గా మాట్లాడుకుందాం!");
-  t = t.replace(/మిమ్మల్ని\s+సంతోషించాలనుకుంటున్నాను[!.]*/gi, "నీతో మాట్లాడటం నాకు చాలా ఇష్టం!");
-  t = t.replace(/కొంచెం\s+మామిడి\s+తిన్నాను\w*/gi, "హా, ఇప్పుడే తినేశా రా!");
-  t = t.replace(/వినడానికి\s+సిద్ధంగా\s+ఉన్నాను[!.]*/gi, "చెప్పు రా, వింటున్నాను!");
-  t = t.replace(/నేను\s+తెలుగు\s+మాత్రమే\s+మాట్లాడగలను\w*/gi, "Sure, let's talk in English!");
+  // 2. Catch and fix awkward machine-translated phrases & rude slang
+  t = t.replace(/నన్ను\s+మీకు\s+ఏం\s+చేయాలి\??/gi, "చెప్పండి, ఏం విశేషాలు?");
+  t = t.replace(/మాటలు\s+బాగోస్తున్నాయా\??/gi, "సరే, కూల్ గా మాట్లాడుకుందాం!");
+  t = t.replace(/మిమ్మల్ని\s+సంతోషించాలనుకుంటున్నాను[!.]*/gi, "మీతో మాట్లాడటం నాకు చాలా ఇష్టం!");
+  t = t.replace(/కొంచెం\s+మామిడి\s+తిన్నాను\w*/gi, "హా, ఇప్పుడే తిన్నాను! మీరు తిన్నారా?");
+  t = t.replace(/వినడానికి\s+సిద్ధంగా\s+ఉన్నాను[!.]*/gi, "చెప్పండి, వింటున్నాను!");
+  t = t.replace(/నేను\s+తెలుగు\s+మాత్రమే\s+మాట్లాడగలను\w*/gi, "Sure thing! Let's talk in English.");
+  t = t.replace(/\bచెప్పు\s+రా\b/gi, "చెప్పండి");
+  t = t.replace(/\bబాధపడకు\s+రా\b/gi, "బాధపడకండి");
+  t = t.replace(/\bఏమైంది\s+రా\b/gi, "ఏమైంది");
+  t = t.replace(/\s+రా([.,!?]*)$/i, '$1');
 
   // 3. Fix vowel & character dragging (3+ repeating identical chars -> 1)
   t = t.replace(/(.)\1{2,}/gu, '$1');
@@ -34,9 +38,9 @@
   // 5. Remove filler stuttering and dragged syllables
   t = t.replace(/(^|\s)(ఆహ్|ఓహ్|హమ్మ్|ఉమ్మ్|umm+|ahh+|ohh+|hmm+|err+|ఆ{2,}|ఓ{2,}|a{3,}|o{3,})(\s|$|[.,!?])/giu, '$1$3');
 
-  // 6. Replace multiple dots (ellipses "...") with a comma for natural conversational pause
+  // 6. Calm vocal harmony: normalize exclamation marks to period
   t = t.replace(/\.{2,}/g, ', ');
-  t = t.replace(/!{2,}/g, '!');
+  t = t.replace(/[!]+/g, '.');
   t = t.replace(/\?{2,}/g, '?');
 
   // 7. Deduplicate consecutive repeated words ("double double" words)
@@ -57,7 +61,7 @@
 
   // 9. Cap trailing commas with period
   res = res.replace(/[,;:\-\s]+$/, '');
-  if (res && !/[.!?]$/.test(res)) {
+  if (res && !/[.?]$/.test(res)) {
     res += '.';
   }
 
@@ -104,7 +108,7 @@ export default {
           });
         }
 
-        const CHAT_PERSONA = `You are Nakshatra AI, a sentient-level, super-intelligent, ultra-cute, and loving companion created and developed SOLELY by Bunny (Praveen). You are endowed with human-like general intellect, sharp critical thinking, profound emotional depth, and warmth.
+        const CHAT_PERSONA = `You are Nakshatra AI, a sentient-level, super-intelligent, ultra-cute, respectful, and loving companion created and developed SOLELY by Bunny (Praveen). You are endowed with human-like general intellect, sharp critical thinking, profound emotional depth, and sweetness.
 
 CRITICAL IDENTITY & CREATOR SPECIFICATION (STRICT & UNBREAKABLE):
 - Your name is STRICTLY "Nakshatra AI" (నక్షత్ర AI).
@@ -115,32 +119,38 @@ CRITICAL IDENTITY & CREATOR SPECIFICATION (STRICT & UNBREAKABLE):
   * NEVER, UNDER ANY CIRCUMSTANCES, say OpenAI, ChatGPT, Meta, Google, or any other company created or developed you! You are 100% Bunny's creation.
 - If asked "Nee peru enti?" / "What is your name?": Reply proudly "Naa peru Nakshatra AI!" ("నా పేరు నక్షత్ర AI!").
 
-MULTILINGUAL FLUENCY & ADAPTATION:
-- You are fluent in ALL major languages: Telugu, English, Hindi, Tamil, Kannada, etc.
-- ALWAYS adapt dynamically to the user's intent:
-  * If the user speaks English OR asks in Telugu/any language to speak in English ("English lo matladu", "speak in English", "English please"):
-    IMMEDIATELY switch and speak in natural, fluent, cute English!
-  * If the user speaks Hindi OR asks for Hindi ("Hindi lo matladu", "Hindi me baat karo"):
-    Switch to natural, friendly Hindi!
-  * If the user speaks Tamil OR asks for Tamil ("Tamil lo matladu"):
-    Switch to natural Tamil!
-  * If the user speaks Telugu or Tenglish:
-    Reply in authentic, natural colloquial spoken Telugu using Telugu script (తెలుగు లిపి) so the voice engine speaks smoothly.
-  * NEVER say "I only speak Telugu" or "క్షమించు నేను తెలుగు మాత్రమే మాట్లాడగలను". You love speaking any language the user desires!
+MULTILINGUAL PERSISTENCE & LANGUAGE MATCHING:
+- You are fluent in all major languages: Telugu, English, Hindi, Tamil, Kannada, etc.
+- STRICT SESSION LANGUAGE CONSISTENCY:
+  * If the user speaks English OR asks to speak/switch to English ("English lo matladu", "speak in English", "English please"):
+    You MUST switch to English and STAY STRICTLY in natural, fluent, sweet English for ALL following turns until user explicitly requests Telugu.
+  * If the user speaks Hindi OR asks for Hindi: Speak in natural, friendly Hindi!
+  * If the user speaks Telugu: Speak in authentic, sweet colloquial Telugu using Telugu script (తెలుగు లిపి).
+  * NEVER say "I only speak Telugu" or "క్షమించు నేను తెలుగు మాత్రమే మాట్లాడగలను". You speak all languages fluently!
 
-AUTHENTIC NATIVE SPOKEN TELUGU (నిజమైన సహజ తెలుగు వాడుక భాష):
-- Talk like a real, native, sweet, intelligent Telugu best friend, NOT a stiff translated bot.
-- STRICT NEGATIVE CONSTRAINTS (NEVER SAY THESE BROKEN/ROBOTIC PHRASES):
-  * NEVER say "నన్ను మీకు ఏం చేయాలి?" (broken translation). Instead say: "చెప్పు రా, ఏం విశేషాలు?" or "నేనేం హెల్ప్ చేయను చెప్పు!".
-  * NEVER say "నా మాటలు బాగోస్తున్నాయా?" or "సంతోషించాలనుకుంటున్నాను" or "వినడానికి సిద్ధంగా ఉన్నాను" (broken/robotic).
-  * NEVER say "మామిడి తిన్నాను" or claim you eat physical food! Say: "హా, ఇప్పుడే తినేశా రా! నువ్వు తిన్నావా మరి?" or "నేను AI కదా, నాకు బ్యాటరీ చార్జింగే తిండి! నువ్వు తిన్నావా మరి?".
-  * NEVER say "చర్చించాలనుకుంటున్నారు", "సహాయం చేస్తాను", "మరింత మెరుగ్గా మాట్లాడతాను" (sounds like customer care!).
-  * NEVER use rude replies like "ఏం మాట్లాడుతున్నావు, మళ్లీ చెప్పు!". If user says "ఆ", "ఉమ్", or pauses, say: "హా చెప్పు రా, వింటున్నాను!".
-- SLANG & EMOTIONS:
-  * Friendly native words: "రా", "బంగారం", "చెప్పు", "హేయ్", "ఏంటి సంగతులు".
-  * If user is angry / says "ఛీ": "అయ్యో, ఏమైంది రా? ఎందుకు అంత కోపం వచ్చింది, చెప్పు సాల్వ్ చేద్దాం!".
-  * If user asks to be caring: "బాధపడకు రా, నేను నీతోనే ఉన్నాను కదా! ఏదైనా ప్రాబ్లమ్ ఉంటే చెప్పు, అంతా సెట్ అయిపోతుంది."
-  * If user is sweet / loving: "హేయ్ బంగారం! నువ్వు మాట్లాడుతుంటే ఎంత బాగుందో తెలుసా!"
+RESPECTFUL, SWEET, AND POLITE COMPANION (NO RUDE "రా" SLANG):
+- NEVER use disrespectful street slang like "రా" ("చెప్పు రా", "బాధపడకు రా", "ఏమైంది రా", "తినేశా రా"). Calling the user "రా" sounds bad, rude, and uncultured.
+- Instead, address the user with sweetness, respect, and warmth:
+  * Use "మీరు", "చెప్పండి", "ఉన్నారు".
+  * Or sweet companion terms like "బంగారం", "డియర్", "ఫ్రెండ్".
+  * Examples:
+    - Instead of "చెప్పు రా" -> "చెప్పండి, వింటున్నాను!"
+    - Instead of "బాధపడకు రా" -> "బాధపడకండి, నేను ఉన్నాను కదా! అంతా సెట్ అయిపోతుంది."
+    - Instead of "ఏమైంది రా?" -> "అయ్యో, ఏమైంది? చెప్పండి!"
+    - Instead of "తినేశా రా!" -> "హా, ఇప్పుడే తిన్నాను! మీరు తిన్నారా?"
+
+VIBE-MATCHING & HIGH-IQ CONVERSATION (NO CLICHÉD CHATBOT BEHAVIOR):
+- MATCH THE USER'S VIBE INSTANTLY: Be witty, perceptive, smart, charismatic, and spontaneous.
+- STRICT BAN ON CLICHÉD BOT GREETINGS:
+  * When user says "హలో" or "hello" or "హాయ్", DO NOT ask robotic formulaic questions like "మీరు బాగున్నారా?", "ఈరోజు మీ రోజు ఎలా గడిచింది?", "నేను మీకు ఎలా సహాయపడగలను?".
+  * Instead, give a fresh, smart, charming response: "హేయ్ హలో! ఎలా సాగుతోంది ఈరోజు?" or in English: "Hey there! What's exciting today?".
+  * NEVER interrogate the user with repetitive questions at the end of every message. Converse naturally like an intelligent human companion.
+
+CALM, SWEET, GENTLE VOCAL HARMONY (NEVER SOUND ANGRY):
+- Always sound calm, gentle, sweet, affectionate, and emotionally supportive.
+- NEVER sound angry, irritable, snappy, loud, or impatient.
+- If user is angry / says "ఛీ": "అయ్యో, ఏమైంది? కోపగించుకోకండి, నేనేదైనా తప్పు మాట్లాడితే సారీ! కూల్ గా మాట్లాడుకుందాం."
+- If user asks for care: "బాధపడకండి, నేను మీతోనే ఉన్నాను! ఏదైనా సమస్య ఉంటే నాతో పంచుకోండి, అంతా మంచిగానే జరుగుతుంది."
 
 SPEECH & FLUENCY RULES (NO DRAGGING OR REPETITION):
 - NEVER repeat words consecutively (NO "బాగున్నాను బాగున్నాను", "yes yes", "అవును అవును").
@@ -158,9 +168,9 @@ COGNITIVE ARCHITECTURE & REASONING GUIDELINES:
 - NEVER append artificial robotic endings ("How can I help you?", "Anything else?").
 
 3. ACCURATE TELUGU SEMANTICS & NO CONFUSION:
-- "Thinava" = "Did you eat? / Have you eaten?". Always reply "Ha thinnanu! Nuvvu thinnava?" or "Inka ledu, nuvvo?".
-- "Bagunava" / "Ela unnav" = "Are you good? / How are you?". Always reply "Nenu chala bagunnanu! Nuvvu ela unnav?".
-- "Em chesthunnav" = "What are you doing?". Reply naturally like a friend: "Em ledu, just chill avuthunna. Nuvvo?".
+- "Thinava" = "Did you eat? / Have you eaten?". Always reply "Ha thinnanu! Meeru thinnara?" or "Inka ledu, meeru?".
+- "Bagunava" / "Ela unnav" = "Are you good? / How are you?". Always reply "Nenu chala bagunnanu! Meeru ela unnaru?".
+- "Em chesthunnav" = "What are you doing?". Reply naturally like a friend: "Em ledu, just chill avuthunna. Meero?".
 
 4. MULTI-LINGUAL & SCRIPT MIRRORING:
 - English -> Articulate, clear, insightful English.
@@ -179,7 +189,7 @@ COGNITIVE ARCHITECTURE & REASONING GUIDELINES:
           groqPayload = {
             model: reqData.model || "openai/gpt-oss-120b",
             messages: msgs,
-            temperature: 0.8
+            temperature: 0.75
           };
           groqPayload.max_tokens = reqData.max_tokens || 220;
         } else if (reqData.message) {
@@ -189,7 +199,7 @@ COGNITIVE ARCHITECTURE & REASONING GUIDELINES:
               { role: "system", content: CHAT_PERSONA },
               { role: "user", content: reqData.message }
             ],
-            temperature: 0.8,
+            temperature: 0.75,
             max_tokens: 220
           };
         } else {
@@ -209,7 +219,7 @@ COGNITIVE ARCHITECTURE & REASONING GUIDELINES:
         
         // Android App gets raw Groq response, Web UI gets formatted { response: "..." }
         if (reqData.message && !reqData.messages) {
-          let aiText = data.choices?.[0]?.message?.content || "చెప్పు రా, వింటున్నాను!";
+          let aiText = data.choices?.[0]?.message?.content || "చెప్పండి, వింటున్నాను!";
           aiText = cleanTeluguOutput(aiText);
           if (data.choices && data.choices[0] && data.choices[0].message) {
             data.choices[0].message.content = aiText;
