@@ -2,6 +2,9 @@
   if (!text || typeof text !== "string") return text;
   let t = text;
 
+  // 0. Strip role prefix if model prepends its name (e.g. "నక్షత్ర AI: ...")
+  t = t.replace(/^(నక్షత్ర\s*(AI)?|Nakshatra\s*(AI)?|Assistant|AI|Bot)\s*[:：\-–]\s*/i, '');
+
   // 1. Fix broken pronouns & food replies
   t = t.replace(/\b(nenu|nenu\s+super\s+ga)\s+thinava\b/gi, "Ha thinnanu! Meeru thinnara?");
   t = t.replace(/\b(nee|neev?u?)\s+bagundh?[ao]\??/gi, "meeru ela unnaru?");
@@ -29,16 +32,19 @@
   t = t.replace(/\bఏమైంది\s+రా\b/gi, "ఏమైంది");
   t = t.replace(/\s+రా([.,!?]*)$/i, '$1');
 
-  // 3. Fix vowel & character dragging (3+ repeating identical chars -> 1)
+  // 3. Strip accidental Cyrillic / foreign script token leaks (e.g. "всё")
+  t = t.replace(/[\u0400-\u04FF\u4E00-\u9FFF\u0600-\u06FF]/g, '');
+
+  // 4. Fix vowel & character dragging (3+ repeating identical chars -> 1)
   t = t.replace(/(.)\1{2,}/gu, '$1');
 
-  // 4. Normalize multiple Telugu vowel matras
+  // 5. Normalize multiple Telugu vowel matras
   t = t.replace(/[\u0C3E-\u0C4C]{2,}/gu, (m) => m[0]);
 
-  // 5. Remove filler stuttering and dragged syllables
+  // 6. Remove filler stuttering and dragged syllables
   t = t.replace(/(^|\s)(ఆహ్|ఓహ్|హమ్మ్|ఉమ్మ్|umm+|ahh+|ohh+|hmm+|err+|ఆ{2,}|ఓ{2,}|a{3,}|o{3,})(\s|$|[.,!?])/giu, '$1$3');
 
-  // 6. Calm vocal harmony: normalize exclamation marks to period
+  // 7. Calm vocal harmony: normalize exclamation marks to period
   t = t.replace(/\.{2,}/g, ', ');
   t = t.replace(/[!]+/g, '.');
   t = t.replace(/\?{2,}/g, '?');
@@ -226,7 +232,7 @@ COGNITIVE ARCHITECTURE & REASONING GUIDELINES:
           }
           return new Response(JSON.stringify({ response: aiText }), {
             status: res.status,
-            headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" }
+            headers: { "Content-Type": "application/json; charset=utf-8", "Access-Control-Allow-Origin": "*" }
           });
         }
 
@@ -234,7 +240,7 @@ COGNITIVE ARCHITECTURE & REASONING GUIDELINES:
           data.choices[0].message.content = cleanTeluguOutput(data.choices[0].message.content);
         }
 
-        return respond(new Response(JSON.stringify(data), { status: res.status, headers: { "Content-Type": "application/json" } }));
+        return respond(new Response(JSON.stringify(data), { status: res.status, headers: { "Content-Type": "application/json; charset=utf-8" } }));
       }
 
       // 2. GROQ STT (Speech-to-Text)
