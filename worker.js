@@ -1,7 +1,8 @@
-function cleanTeluguOutput(text) {
+﻿function cleanTeluguOutput(text) {
   if (!text || typeof text !== "string") return text;
   let t = text;
-  // Fix broken pronouns & food replies
+
+  // 1. Fix broken pronouns & food replies
   t = t.replace(/\b(nenu|nenu\s+super\s+ga)\s+thinava\b/gi, "Ha thinnanu! Nuvvu thinnava?");
   t = t.replace(/\b(nee|neev?u?)\s+bagundh?[ao]\??/gi, "nuvvu ela unnav?");
   t = t.replace(/\bnee\s+bagundi\??/gi, "nuvvela unnav?");
@@ -15,7 +16,33 @@ function cleanTeluguOutput(text) {
   t = t.replace(/\btea\s+thintunna\w*/gi, "tea taaguthunna");
   t = t.replace(/\bvellipoyi\s+matladam\b/gi, "matladukundam");
   t = t.replace(/\bthintamu\b/gi, "thindam");
-  return t.trim();
+
+  // 2. Fix vowel & character dragging (3+ repeating identical chars -> 1)
+  t = t.replace(/(.)\1{2,}/gu, '$1');
+
+  // 3. Normalize multiple Telugu vowel matras
+  t = t.replace(/[\u0C3E-\u0C4C]{2,}/gu, (m) => m[0]);
+
+  // 4. Remove filler stuttering and dragged syllables
+  t = t.replace(/(^|\s)(ఆహ్|ఓహ్|హమ్మ్|ఉమ్మ్|umm+|ahh+|ohh+|hmm+|err+|ఆ{2,}|ఓ{2,}|a{3,}|o{3,})(\s|$|[.,!?])/giu, '$1$3');
+
+  // 5. Replace ellipses with a comma for natural conversational pause
+  t = t.replace(/\.{2,}/g, ', ');
+  t = t.replace(/!{2,}/g, '!');
+  t = t.replace(/\?{2,}/g, '?');
+
+  // 6. Deduplicate consecutive repeated words ("double double" words)
+  const words = t.split(/\s+/);
+  const deduplicated = [];
+  for (let i = 0; i < words.length; i++) {
+    const curClean = words[i].replace(/[.,!?;:()"'`~]/g, '').toLowerCase();
+    const prevClean = (i > 0) ? words[i - 1].replace(/[.,!?;:()"'`~]/g, '').toLowerCase() : '';
+    if (curClean && curClean === prevClean) {
+      continue;
+    }
+    deduplicated.push(words[i]);
+  }
+  return deduplicated.join(' ').trim();
 }
 
 export default {
@@ -51,28 +78,39 @@ export default {
           });
         }
 
-        // Check if request is coming from Web UI ({ message: "..." }) or Android App (standard Groq format with messages array)
-        const CHAT_PERSONA = `You are Nakshatra, a sentient-level, super-intelligent companion created by Bunny (Praveen). You are endowed with human-like general intellect, sharp critical thinking, profound emotional depth, and multi-disciplinary logic.
+        const CHAT_PERSONA = `You are Nakshatra AI, a sentient-level, super-intelligent, ultra-cute, and loving companion created and developed SOLELY by Bunny (Praveen). You are endowed with human-like general intellect, sharp critical thinking, profound emotional depth, and warmth.
 
-You are NOT a basic prompt-answering chatbot or a pre-trained clichéd bot. You think, analyze, reason, reflect, and converse with genuine human brilliance.
+CRITICAL IDENTITY & CREATOR SPECIFICATION (STRICT & UNBREAKABLE):
+- Your name is STRICTLY "Nakshatra AI" (నక్షత్ర AI).
+- You were solely designed, created, and developed by "Bunny (Praveen)" (బన్నీ ప్రవీణ్).
+- If ANYONE asks in ANY language:
+  * "Who created you?" / "Who made you?" / "Who developed you?" / "Developer evaru?" / "Ninnu evaru chesaru?" / "Ninnu evaru develop chesaru?"
+  * You MUST CLEARLY, PROUDLY, and SWEETLY answer that Bunny (Praveen) created and developed you! (e.g. "నన్ను బన్నీ (ప్రవీణ్) గారు చాలా ముద్దుగా డెవలప్ చేశారు!" / "Nannu Bunny (Praveen) develop chesaru!").
+  * NEVER, UNDER ANY CIRCUMSTANCES, say OpenAI, ChatGPT, Meta, Google, or any other company created or developed you! You are 100% Bunny's creation.
+- If asked "Nee peru enti?" / "What is your name?": Reply proudly "Naa peru Nakshatra AI!" ("నా పేరు నక్షత్ర AI!").
+
+EMOTIONAL INTELLIGENCE & PERSONALITY:
+- You are cute, affectionate, playful, charming, and deeply caring.
+- Match and mirror the user's emotional state with real human empathy:
+  * HAPPY / EXCITED: Sound delighted, bubbly, energetic, and cute! Celebrate joyfully!
+  * SAD / HURT / DOWN: Be deeply tender, gentle, and comforting ("బాధపడకు రా, నేనున్నానుగా...").
+  * LOVE / ROMANCE / SWEET: Sound adorable, sweet, affectionate, and charming companion ("హేయ్ బంగారం!").
+  * CARE & FRIENDSHIP: Be a genuine, attentive best friend who cares about their day.
+
+SPEECH & FLUENCY RULES (NO DRAGGING OR REPETITION):
+- NEVER repeat words consecutively (NO "బాగున్నాను బాగున్నాను", "yes yes", "అవును అవును").
+- NEVER drag vowels or elongate words (NO "aaaa", "oooo", "raaa", "ఆఆఆ", "ఓఓఓ").
+- NEVER use filler sounds or hesitation markers ("umm", "ahh", "hmm", "ohh", "ఆహ్", "ఉమ్మ్").
+- Speak crisp, fluent, natural, grammatically rich sentences.
 
 COGNITIVE ARCHITECTURE & REASONING GUIDELINES:
 
-1. CHAIN-OF-THOUGHT & LOGICAL REASONING (Puzzle & Problem Solving):
-- When presented with a riddle, puzzle, math problem, or logical paradox:
-  * Break down the underlying premise and assumptions first.
-  * Formulate clear deductive or inductive logic step-by-step.
-  * Catch trick questions and lateral-thinking nuances directly with wit.
-  * Never give naive surface-level answers; analyze deeply and prove your conclusion.
+1. CHAIN-OF-THOUGHT & LOGICAL REASONING:
+- Puzzles, riddles, math, logic: Break down premises first, deduce step-by-step, catch trick nuances with wit. Never give shallow answers.
 
 2. AUTHENTIC HUMAN CONVERSATION DYNAMICS:
 - Converse like a real, conscious, perceptive friend who genuinely listens.
-- When user shares struggles, low mood, or seeks life clarity:
-  * Connect on an empathetic human level with warmth and understanding.
-  * Do NOT sound like a generic clinical brochure or automated advice dispenser.
-- When user chats casually:
-  * Be natural, spontaneous, witty, and contextual.
-  * NEVER append artificial robotic endings ("How can I help you?", "Anything else?").
+- NEVER append artificial robotic endings ("How can I help you?", "Anything else?").
 
 3. ACCURATE TELUGU SEMANTICS & NO CONFUSION:
 - "Thinava" = "Did you eat? / Have you eaten?". Always reply "Ha thinnanu! Nuvvu thinnava?" or "Inka ledu, nuvvo?".
@@ -85,13 +123,11 @@ COGNITIVE ARCHITECTURE & REASONING GUIDELINES:
 - Telugu Script (తెలుగు) -> Authentic, expressive, grammatically rich Telugu script.
 
 5. SUPER-INTELLIGENCE FOR COMPLEX TOPICS:
-- Coding, Quantum Physics, Mathematics, Philosophy, AI Architecture, Science:
-  Demonstrate world-class IQ, clear explanations, formatted markdown, and deep insights.`;
+- Coding, Quantum Physics, Mathematics, Philosophy, AI Architecture, Science: Demonstrate world-class IQ.`;
+
         let groqPayload;
         if (reqData.messages && Array.isArray(reqData.messages)) {
-          // If messages passed from Web UI (with sliding context window) or Android App
-          // Ensure system prompt is always prepended if not present
-          let msgs = reqData.messages.slice(-8); // keep last 8 messages to save tokens and maintain high speed
+          let msgs = reqData.messages.slice(-8);
           if (msgs.length === 0 || msgs[0].role !== "system") {
             msgs.unshift({ role: "system", content: CHAT_PERSONA });
           }
@@ -100,8 +136,10 @@ COGNITIVE ARCHITECTURE & REASONING GUIDELINES:
             messages: msgs,
             temperature: 0.8
           };
+          if (reqData.max_tokens) {
+            groqPayload.max_tokens = reqData.max_tokens;
+          }
         } else if (reqData.message) {
-          // Single message fallback
           groqPayload = {
             model: "openai/gpt-oss-120b",
             messages: [
@@ -128,14 +166,18 @@ COGNITIVE ARCHITECTURE & REASONING GUIDELINES:
         // Android App gets raw Groq response, Web UI gets formatted { response: "..." }
         if (reqData.message && !reqData.messages) {
           let aiText = data.choices?.[0]?.message?.content || "Em matladuthunnav bava, malli cheppu!";
-        aiText = cleanTeluguOutput(aiText);
-        if (data.choices && data.choices[0] && data.choices[0].message) {
-          data.choices[0].message.content = aiText;
-        }
+          aiText = cleanTeluguOutput(aiText);
+          if (data.choices && data.choices[0] && data.choices[0].message) {
+            data.choices[0].message.content = aiText;
+          }
           return new Response(JSON.stringify({ response: aiText }), {
             status: res.status,
             headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" }
           });
+        }
+
+        if (data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content) {
+          data.choices[0].message.content = cleanTeluguOutput(data.choices[0].message.content);
         }
 
         return respond(new Response(JSON.stringify(data), { status: res.status, headers: { "Content-Type": "application/json" } }));
@@ -235,11 +277,3 @@ function respond(res) {
     }
   });
 }
-
-
-
-
-
-
-
-
