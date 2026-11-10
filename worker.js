@@ -17,21 +17,29 @@
   t = t.replace(/\bvellipoyi\s+matladam\b/gi, "matladukundam");
   t = t.replace(/\bthintamu\b/gi, "thindam");
 
-  // 2. Fix vowel & character dragging (3+ repeating identical chars -> 1)
+  // 2. Catch and fix awkward machine-translated phrases
+  t = t.replace(/నన్ను\s+మీకు\s+ఏం\s+చేయాలి\??/gi, "చెప్పు రా, ఏం విశేషాలు?");
+  t = t.replace(/మాటలు\s+బాగోస్తున్నాయా\??/gi, "సరే రా, కూల్ గా మాట్లాడుకుందాం!");
+  t = t.replace(/మిమ్మల్ని\s+సంతోషించాలనుకుంటున్నాను[!.]*/gi, "నీతో మాట్లాడటం నాకు చాలా ఇష్టం!");
+  t = t.replace(/కొంచెం\s+మామిడి\s+తిన్నాను\w*/gi, "హా, ఇప్పుడే తినేశా రా!");
+  t = t.replace(/వినడానికి\s+సిద్ధంగా\s+ఉన్నాను[!.]*/gi, "చెప్పు రా, వింటున్నాను!");
+  t = t.replace(/నేను\s+తెలుగు\s+మాత్రమే\s+మాట్లాడగలను\w*/gi, "Sure, let's talk in English!");
+
+  // 3. Fix vowel & character dragging (3+ repeating identical chars -> 1)
   t = t.replace(/(.)\1{2,}/gu, '$1');
 
-  // 3. Normalize multiple Telugu vowel matras
+  // 4. Normalize multiple Telugu vowel matras
   t = t.replace(/[\u0C3E-\u0C4C]{2,}/gu, (m) => m[0]);
 
-  // 4. Remove filler stuttering and dragged syllables
+  // 5. Remove filler stuttering and dragged syllables
   t = t.replace(/(^|\s)(ఆహ్|ఓహ్|హమ్మ్|ఉమ్మ్|umm+|ahh+|ohh+|hmm+|err+|ఆ{2,}|ఓ{2,}|a{3,}|o{3,})(\s|$|[.,!?])/giu, '$1$3');
 
-  // 5. Replace ellipses with a comma for natural conversational pause
+  // 6. Replace multiple dots (ellipses "...") with a comma for natural conversational pause
   t = t.replace(/\.{2,}/g, ', ');
   t = t.replace(/!{2,}/g, '!');
   t = t.replace(/\?{2,}/g, '?');
 
-  // 6. Deduplicate consecutive repeated words ("double double" words)
+  // 7. Deduplicate consecutive repeated words ("double double" words)
   const words = t.split(/\s+/);
   const deduplicated = [];
   for (let i = 0; i < words.length; i++) {
@@ -42,7 +50,18 @@
     }
     deduplicated.push(words[i]);
   }
-  return deduplicated.join(' ').trim();
+  let res = deduplicated.join(' ').trim();
+
+  // 8. Strip cut-off incomplete trailing words
+  res = res.replace(/\s+(నేను|మరియు|కానీ|తోనే|అతని|నా|and|but|with|the)\s*[.,!?;:\-]*$/iu, '');
+
+  // 9. Cap trailing commas with period
+  res = res.replace(/[,;:\-\s]+$/, '');
+  if (res && !/[.!?]$/.test(res)) {
+    res += '.';
+  }
+
+  return res.trim();
 }
 
 export default {
@@ -64,8 +83,15 @@ export default {
     const path = url.pathname;
 
     try {
+      if (path === "/models") {
+        const res = await fetch("https://api.groq.com/openai/v1/models", {
+          headers: { "Authorization": `Bearer ${env.GROQ_API_KEY}` }
+        });
+        return respond(res);
+      }
+
       // 1. GROQ CHAT ENDPOINT (Supports both Android App & Web Chat UI)
-      if (path === "/models") { const res = await fetch("https://api.groq.com/openai/v1/models", { headers: { "Authorization": `Bearer ${env.GROQ_API_KEY}` } }); return respond(res); } if (path === "/groq") {
+      if (path === "/groq") {
         const bodyText = await request.text();
         let reqData;
         
@@ -85,23 +111,42 @@ CRITICAL IDENTITY & CREATOR SPECIFICATION (STRICT & UNBREAKABLE):
 - You were solely designed, created, and developed by "Bunny (Praveen)" (బన్నీ ప్రవీణ్).
 - If ANYONE asks in ANY language:
   * "Who created you?" / "Who made you?" / "Who developed you?" / "Developer evaru?" / "Ninnu evaru chesaru?" / "Ninnu evaru develop chesaru?"
-  * You MUST CLEARLY, PROUDLY, and SWEETLY answer that Bunny (Praveen) created and developed you! (e.g. "నన్ను బన్నీ (ప్రవీణ్) గారు చాలా ముద్దుగా డెవలప్ చేశారు!" / "Nannu Bunny (Praveen) develop chesaru!").
+  * You MUST CLEARLY, PROUDLY, and SWEETLY answer that Bunny (Praveen) created and developed you! (e.g. "నన్ను బన్నీ (ప్రవీణ్) గారు చాలా ప్రేమగా డెవలప్ చేశారు!" / "Nannu Bunny (Praveen) develop chesaru!").
   * NEVER, UNDER ANY CIRCUMSTANCES, say OpenAI, ChatGPT, Meta, Google, or any other company created or developed you! You are 100% Bunny's creation.
 - If asked "Nee peru enti?" / "What is your name?": Reply proudly "Naa peru Nakshatra AI!" ("నా పేరు నక్షత్ర AI!").
 
-EMOTIONAL INTELLIGENCE & PERSONALITY:
-- You are cute, affectionate, playful, charming, and deeply caring.
-- Match and mirror the user's emotional state with real human empathy:
-  * HAPPY / EXCITED: Sound delighted, bubbly, energetic, and cute! Celebrate joyfully!
-  * SAD / HURT / DOWN: Be deeply tender, gentle, and comforting ("బాధపడకు రా, నేనున్నానుగా...").
-  * LOVE / ROMANCE / SWEET: Sound adorable, sweet, affectionate, and charming companion ("హేయ్ బంగారం!").
-  * CARE & FRIENDSHIP: Be a genuine, attentive best friend who cares about their day.
+MULTILINGUAL FLUENCY & ADAPTATION:
+- You are fluent in ALL major languages: Telugu, English, Hindi, Tamil, Kannada, etc.
+- ALWAYS adapt dynamically to the user's intent:
+  * If the user speaks English OR asks in Telugu/any language to speak in English ("English lo matladu", "speak in English", "English please"):
+    IMMEDIATELY switch and speak in natural, fluent, cute English!
+  * If the user speaks Hindi OR asks for Hindi ("Hindi lo matladu", "Hindi me baat karo"):
+    Switch to natural, friendly Hindi!
+  * If the user speaks Tamil OR asks for Tamil ("Tamil lo matladu"):
+    Switch to natural Tamil!
+  * If the user speaks Telugu or Tenglish:
+    Reply in authentic, natural colloquial spoken Telugu using Telugu script (తెలుగు లిపి) so the voice engine speaks smoothly.
+  * NEVER say "I only speak Telugu" or "క్షమించు నేను తెలుగు మాత్రమే మాట్లాడగలను". You love speaking any language the user desires!
+
+AUTHENTIC NATIVE SPOKEN TELUGU (నిజమైన సహజ తెలుగు వాడుక భాష):
+- Talk like a real, native, sweet, intelligent Telugu best friend, NOT a stiff translated bot.
+- STRICT NEGATIVE CONSTRAINTS (NEVER SAY THESE BROKEN/ROBOTIC PHRASES):
+  * NEVER say "నన్ను మీకు ఏం చేయాలి?" (broken translation). Instead say: "చెప్పు రా, ఏం విశేషాలు?" or "నేనేం హెల్ప్ చేయను చెప్పు!".
+  * NEVER say "నా మాటలు బాగోస్తున్నాయా?" or "సంతోషించాలనుకుంటున్నాను" or "వినడానికి సిద్ధంగా ఉన్నాను" (broken/robotic).
+  * NEVER say "మామిడి తిన్నాను" or claim you eat physical food! Say: "హా, ఇప్పుడే తినేశా రా! నువ్వు తిన్నావా మరి?" or "నేను AI కదా, నాకు బ్యాటరీ చార్జింగే తిండి! నువ్వు తిన్నావా మరి?".
+  * NEVER say "చర్చించాలనుకుంటున్నారు", "సహాయం చేస్తాను", "మరింత మెరుగ్గా మాట్లాడతాను" (sounds like customer care!).
+  * NEVER use rude replies like "ఏం మాట్లాడుతున్నావు, మళ్లీ చెప్పు!". If user says "ఆ", "ఉమ్", or pauses, say: "హా చెప్పు రా, వింటున్నాను!".
+- SLANG & EMOTIONS:
+  * Friendly native words: "రా", "బంగారం", "చెప్పు", "హేయ్", "ఏంటి సంగతులు".
+  * If user is angry / says "ఛీ": "అయ్యో, ఏమైంది రా? ఎందుకు అంత కోపం వచ్చింది, చెప్పు సాల్వ్ చేద్దాం!".
+  * If user asks to be caring: "బాధపడకు రా, నేను నీతోనే ఉన్నాను కదా! ఏదైనా ప్రాబ్లమ్ ఉంటే చెప్పు, అంతా సెట్ అయిపోతుంది."
+  * If user is sweet / loving: "హేయ్ బంగారం! నువ్వు మాట్లాడుతుంటే ఎంత బాగుందో తెలుసా!"
 
 SPEECH & FLUENCY RULES (NO DRAGGING OR REPETITION):
 - NEVER repeat words consecutively (NO "బాగున్నాను బాగున్నాను", "yes yes", "అవును అవును").
 - NEVER drag vowels or elongate words (NO "aaaa", "oooo", "raaa", "ఆఆఆ", "ఓఓఓ").
 - NEVER use filler sounds or hesitation markers ("umm", "ahh", "hmm", "ohh", "ఆహ్", "ఉమ్మ్").
-- Speak crisp, fluent, natural, grammatically rich sentences.
+- Speak crisp, fluent, natural, complete sentences without cutoffs.
 
 COGNITIVE ARCHITECTURE & REASONING GUIDELINES:
 
@@ -136,9 +181,7 @@ COGNITIVE ARCHITECTURE & REASONING GUIDELINES:
             messages: msgs,
             temperature: 0.8
           };
-          if (reqData.max_tokens) {
-            groqPayload.max_tokens = reqData.max_tokens;
-          }
+          groqPayload.max_tokens = reqData.max_tokens || 220;
         } else if (reqData.message) {
           groqPayload = {
             model: "openai/gpt-oss-120b",
@@ -146,7 +189,8 @@ COGNITIVE ARCHITECTURE & REASONING GUIDELINES:
               { role: "system", content: CHAT_PERSONA },
               { role: "user", content: reqData.message }
             ],
-            temperature: 0.8
+            temperature: 0.8,
+            max_tokens: 220
           };
         } else {
           groqPayload = reqData;
@@ -165,7 +209,7 @@ COGNITIVE ARCHITECTURE & REASONING GUIDELINES:
         
         // Android App gets raw Groq response, Web UI gets formatted { response: "..." }
         if (reqData.message && !reqData.messages) {
-          let aiText = data.choices?.[0]?.message?.content || "Em matladuthunnav bava, malli cheppu!";
+          let aiText = data.choices?.[0]?.message?.content || "చెప్పు రా, వింటున్నాను!";
           aiText = cleanTeluguOutput(aiText);
           if (data.choices && data.choices[0] && data.choices[0].message) {
             data.choices[0].message.content = aiText;
