@@ -65,7 +65,7 @@ export default {
 
     try {
       // 1. GROQ CHAT ENDPOINT (Supports both Android App & Web Chat UI)
-      if (path === "/groq") {
+      if (path === "/models") { const res = await fetch("https://api.groq.com/openai/v1/models", { headers: { "Authorization": `Bearer ${env.GROQ_API_KEY}` } }); return respond(res); } if (path === "/groq") {
         const bodyText = await request.text();
         let reqData;
         
