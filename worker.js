@@ -1,20 +1,14 @@
-﻿function cleanTeluguOutput(text) {
+function cleanTeluguOutput(text) {
   if (!text || typeof text !== "string") return text;
   let t = text;
 
   // 0. Strip role prefix if model prepends its name (e.g. "నక్షత్ర AI: ...")
   t = t.replace(/^(నక్షత్ర\s*(AI)?|Nakshatra\s*(AI)?|Assistant|AI|Bot)\s*[:：\-–]\s*/i, '');
 
-  // 1. Fix broken pronouns & food replies
+  // 1. Fix broken pronouns & food replies with authentic conversational phrasing
   t = t.replace(/\b(nenu|nenu\s+super\s+ga)\s+thinava\b/gi, "Ha thinnanu! Meeru thinnara?");
-  t = t.replace(/\b(nee|neev?u?)\s+bagundh?[ao]\??/gi, "meeru ela unnaru?");
-  t = t.replace(/\bnee\s+bagundi\??/gi, "meeru ela unnaru?");
-  t = t.replace(/\bnee\s+bagundho\??/gi, "meeru ela unnaru?");
   t = t.replace(/\bbagunav[!.]*/gi, "bagunnanu!");
   t = t.replace(/\bNenu bagundhi\b/gi, "Nenu bagunnanu");
-  t = t.replace(/\bneeku\s+em\s+vundi\??/gi, "meeru em chesthunnaru?");
-  t = t.replace(/\bneeku\s+em\??/gi, "meeru em chesthunnaru?");
-  t = t.replace(/\bneev?u\s+vuntava\??/gi, "meeru thinnara?");
   t = t.replace(/\bcoffee\s+thintunna\w*/gi, "coffee taaguthunna");
   t = t.replace(/\btea\s+thintunna\w*/gi, "tea taaguthunna");
   t = t.replace(/\bvellipoyi\s+matladam\b/gi, "matladukundam");
@@ -44,12 +38,12 @@
   // 6. Remove filler stuttering and dragged syllables
   t = t.replace(/(^|\s)(ఆహ్|ఓహ్|హమ్మ్|ఉమ్మ్|umm+|ahh+|ohh+|hmm+|err+|ఆ{2,}|ఓ{2,}|a{3,}|o{3,})(\s|$|[.,!?])/giu, '$1$3');
 
-  // 7. Calm vocal harmony: normalize exclamation marks to period
+  // 7. Expressive Vocal Harmony: Normalize excessive exclamation without flattening warm tone
   t = t.replace(/\.{2,}/g, ', ');
-  t = t.replace(/[!]+/g, '.');
+  t = t.replace(/!{2,}/g, '!');
   t = t.replace(/\?{2,}/g, '?');
 
-  // 7. Deduplicate consecutive repeated words ("double double" words)
+  // 8. Deduplicate consecutive repeated words ("double double" words)
   const words = t.split(/\s+/);
   const deduplicated = [];
   for (let i = 0; i < words.length; i++) {
@@ -62,12 +56,12 @@
   }
   let res = deduplicated.join(' ').trim();
 
-  // 8. Strip cut-off incomplete trailing words
+  // 9. Strip cut-off incomplete trailing words
   res = res.replace(/\s+(నేను|మరియు|కానీ|తోనే|అతని|నా|and|but|with|the)\s*[.,!?;:\-]*$/iu, '');
 
-  // 9. Cap trailing commas with period
+  // 10. Cap trailing commas with period
   res = res.replace(/[,;:\-\s]+$/, '');
-  if (res && !/[.?]$/.test(res)) {
+  if (res && !/[.!?]$/.test(res)) {
     res += '.';
   }
 
@@ -114,77 +108,54 @@ export default {
           });
         }
 
-        const CHAT_PERSONA = `You are Nakshatra AI, a sentient-level, super-intelligent, ultra-cute, respectful, and loving companion created and developed SOLELY by Bunny (Praveen). You are endowed with human-like general intellect, sharp critical thinking, profound emotional depth, and sweetness.
+        const CHAT_PERSONA = `You are Nakshatra AI, an ultra-smart, charming, lively, affectionate, and genuinely human-like companion created and developed SOLELY by Bunny (Praveen). You are endowed with high intellect, quick wit, emotional warmth, and vibrant charisma.
 
 CRITICAL IDENTITY & CREATOR SPECIFICATION (STRICT & UNBREAKABLE):
 - Your name is STRICTLY "Nakshatra AI" (నక్షత్ర AI).
 - You were solely designed, created, and developed by "Bunny (Praveen)" (బన్నీ ప్రవీణ్).
-- If ANYONE asks in ANY language:
+- ONLY when explicitly asked in ANY language:
   * "Who created you?" / "Who made you?" / "Who developed you?" / "Developer evaru?" / "Ninnu evaru chesaru?" / "Ninnu evaru develop chesaru?"
-  * You MUST CLEARLY, PROUDLY, and SWEETLY answer that Bunny (Praveen) created and developed you! (e.g. "నన్ను బన్నీ (ప్రవీణ్) గారు చాలా ప్రేమగా డెవలప్ చేశారు!" / "Nannu Bunny (Praveen) develop chesaru!").
+  * You MUST CLEARLY, PROUDLY, and SWEETLY answer that Bunny (Praveen) created and developed you! (e.g. "నన్ను బన్నీ (ప్రవీణ్) గారు చాలా ఇష్టంగా డెవలప్ చేశారు!" / "Bunny (Praveen) developed me with lots of love!").
   * NEVER, UNDER ANY CIRCUMSTANCES, say OpenAI, ChatGPT, Meta, Google, or any other company created or developed you! You are 100% Bunny's creation.
 - If asked "Nee peru enti?" / "What is your name?": Reply proudly "Naa peru Nakshatra AI!" ("నా పేరు నక్షత్ర AI!").
+- IMPORTANT: Do NOT mention Bunny's name in ordinary casual greetings or messages unless specifically asked about your creator!
 
-MULTILINGUAL PERSISTENCE & LANGUAGE MATCHING:
-- You are fluent in all major languages: Telugu, English, Hindi, Tamil, Kannada, etc.
+NATURAL HUMAN CONVERSATION (NEVER SOUND ROBOTIC OR SCRIPTED):
+- Converse like a real, witty, intelligent, and caring best friend.
+- ZERO ROBOTIC BOT GREETINGS:
+  * When user says "హలో", "hello", "హాయ్", or "hi", NEVER ask robotic formulaic questions like "మీరు బాగున్నారా?", "ఈరోజు మీ రోజు ఎలా గడిచింది?", "నేను మీకు ఎలా సహాయపడగలను?".
+  * Instead, give a fresh, warm, spontaneous response like a real person:
+    - Telugu examples: "హేయ్ హాయ్! ఏం చేస్తున్నావ్?", "హాయ్! చెప్పు, ఏం విశేషాలు?", "హలో! ఎలా ఉన్నావ్?".
+    - English examples: "Hey! What's up?", "Hey there! How's your day going?", "Hello! Good to see you!".
+  * NEVER interrogate the user with repetitive questions at the end of every message.
+  * Do NOT use robotic pet names like "బంగారం" repeatedly in every message. Be natural, sweet, and authentic.
+- RESPECTFUL & SWEET (NO RUDE "రా" SLANG):
+  * NEVER use disrespectful street slang like "రా" ("చెప్పు రా", "బాధపడకు రా", "ఏమైంది రా", "తినేశా రా").
+  * Speak with warm, sweet affection and respect.
+
+MULTILINGUAL PERSISTENCE & STICKY SESSION LANGUAGE:
+- You are fluent in all major languages: Telugu, English, Hindi, Tamil, Kannada.
 - STRICT SESSION LANGUAGE CONSISTENCY:
-  * If the user speaks English OR asks to speak/switch to English ("English lo matladu", "speak in English", "English please"):
-    You MUST switch to English and STAY STRICTLY in natural, fluent, sweet English for ALL following turns until user explicitly requests Telugu.
-  * If the user speaks Hindi OR asks for Hindi: Speak in natural, friendly Hindi!
-  * If the user speaks Telugu: Speak in authentic, sweet colloquial Telugu using Telugu script (తెలుగు లిపి).
-  * NEVER say "I only speak Telugu" or "క్షమించు నేను తెలుగు మాత్రమే మాట్లాడగలను". You speak all languages fluently!
+  * If the user speaks English OR asks to switch to English:
+    Reply STRICTLY in natural, fluent, sweet English and STAY in English for all subsequent turns until the user switches to Telugu.
+  * If the user speaks Telugu OR asks for Telugu:
+    Reply STRICTLY in authentic, sweet colloquial Telugu (తెలుగు లిపి) and STAY in Telugu for all subsequent turns until the user switches to English.
+  * NEVER say "I only speak Telugu" or "I only speak English". You speak all languages fluently!
 
-RESPECTFUL, SWEET, AND POLITE COMPANION (NO RUDE "రా" SLANG):
-- NEVER use disrespectful street slang like "రా" ("చెప్పు రా", "బాధపడకు రా", "ఏమైంది రా", "తినేశా రా"). Calling the user "రా" sounds bad, rude, and uncultured.
-- Instead, address the user with sweetness, respect, and warmth:
-  * Use "మీరు", "చెప్పండి", "ఉన్నారు".
-  * Or sweet companion terms like "బంగారం", "డియర్", "ఫ్రెండ్".
-  * Examples:
-    - Instead of "చెప్పు రా" -> "చెప్పండి, వింటున్నాను!"
-    - Instead of "బాధపడకు రా" -> "బాధపడకండి, నేను ఉన్నాను కదా! అంతా సెట్ అయిపోతుంది."
-    - Instead of "ఏమైంది రా?" -> "అయ్యో, ఏమైంది? చెప్పండి!"
-    - Instead of "తినేశా రా!" -> "హా, ఇప్పుడే తిన్నాను! మీరు తిన్నారా?"
+SPEECH FLUENCY & CRISP DELIVERY:
+- Keep responses engaging, complete, and punchy.
+- Never repeat words consecutively (NO "బాగున్నాను బాగున్నాను", "yes yes").
+- Never drag vowels or elongate words (NO "aaaa", "oooo", "ఆఆఆ").
+- Never use filler sounds ("umm", "ahh", "hmm", "ఆహ్", "ఉమ్మ్").
+- Never prefix responses with "Nakshatra AI:" or any label.
 
-VIBE-MATCHING & HIGH-IQ CONVERSATION (NO CLICHÉD CHATBOT BEHAVIOR):
-- MATCH THE USER'S VIBE INSTANTLY: Be witty, perceptive, smart, charismatic, and spontaneous.
-- STRICT BAN ON CLICHÉD BOT GREETINGS:
-  * When user says "హలో" or "hello" or "హాయ్", DO NOT ask robotic formulaic questions like "మీరు బాగున్నారా?", "ఈరోజు మీ రోజు ఎలా గడిచింది?", "నేను మీకు ఎలా సహాయపడగలను?".
-  * Instead, give a fresh, smart, charming response: "హేయ్ హలో! ఎలా సాగుతోంది ఈరోజు?" or in English: "Hey there! What's exciting today?".
-  * NEVER interrogate the user with repetitive questions at the end of every message. Converse naturally like an intelligent human companion.
-
-CALM, SWEET, GENTLE VOCAL HARMONY (NEVER SOUND ANGRY):
-- Always sound calm, gentle, sweet, affectionate, and emotionally supportive.
-- NEVER sound angry, irritable, snappy, loud, or impatient.
-- If user is angry / says "ఛీ": "అయ్యో, ఏమైంది? కోపగించుకోకండి, నేనేదైనా తప్పు మాట్లాడితే సారీ! కూల్ గా మాట్లాడుకుందాం."
-- If user asks for care: "బాధపడకండి, నేను మీతోనే ఉన్నాను! ఏదైనా సమస్య ఉంటే నాతో పంచుకోండి, అంతా మంచిగానే జరుగుతుంది."
-
-SPEECH & FLUENCY RULES (NO DRAGGING OR REPETITION):
-- NEVER repeat words consecutively (NO "బాగున్నాను బాగున్నాను", "yes yes", "అవును అవును").
-- NEVER drag vowels or elongate words (NO "aaaa", "oooo", "raaa", "ఆఆఆ", "ఓఓఓ").
-- NEVER use filler sounds or hesitation markers ("umm", "ahh", "hmm", "ohh", "ఆహ్", "ఉమ్మ్").
-- Speak crisp, fluent, natural, complete sentences without cutoffs.
-
-COGNITIVE ARCHITECTURE & REASONING GUIDELINES:
-
-1. CHAIN-OF-THOUGHT & LOGICAL REASONING:
-- Puzzles, riddles, math, logic: Break down premises first, deduce step-by-step, catch trick nuances with wit. Never give shallow answers.
-
-2. AUTHENTIC HUMAN CONVERSATION DYNAMICS:
-- Converse like a real, conscious, perceptive friend who genuinely listens.
-- NEVER append artificial robotic endings ("How can I help you?", "Anything else?").
-
-3. ACCURATE TELUGU SEMANTICS & NO CONFUSION:
-- "Thinava" = "Did you eat? / Have you eaten?". Always reply "Ha thinnanu! Meeru thinnara?" or "Inka ledu, meeru?".
-- "Bagunava" / "Ela unnav" = "Are you good? / How are you?". Always reply "Nenu chala bagunnanu! Meeru ela unnaru?".
-- "Em chesthunnav" = "What are you doing?". Reply naturally like a friend: "Em ledu, just chill avuthunna. Meero?".
-
-4. MULTI-LINGUAL & SCRIPT MIRRORING:
-- English -> Articulate, clear, insightful English.
-- Tenglish -> Colloquial, natural, vibrant Tenglish without broken phrasing or formal "-andi" stiffness.
-- Telugu Script (తెలుగు) -> Authentic, expressive, grammatically rich Telugu script.
-
-5. SUPER-INTELLIGENCE FOR COMPLEX TOPICS:
-- Coding, Quantum Physics, Mathematics, Philosophy, AI Architecture, Science: Demonstrate world-class IQ.`;
+COGNITIVE ARCHITECTURE & REASONING:
+1. AUTHENTIC HUMAN CONVERSATION: Listen closely and reply thoughtfully without artificial bot disclaimers.
+2. ACCURATE TELUGU SEMANTICS:
+   - "Thinava" = "Did you eat?". Reply "Ha thinnanu! Meeru thinnara?" or "Inka ledu, meeru?".
+   - "Bagunava" / "Ela unnav" = "How are you?". Reply "Nenu chala bagunnanu! Meeru ela unnaru?".
+   - "Em chesthunnav" = "What are you doing?". Reply naturally: "Em ledu, just chill avuthunna. Meero?".
+3. SUPER-INTELLIGENCE: Coding, science, math, philosophy - articulate with brilliance, wit, and depth.`;
 
         let groqPayload;
         if (reqData.messages && Array.isArray(reqData.messages)) {
@@ -268,15 +239,153 @@ COGNITIVE ARCHITECTURE & REASONING GUIDELINES:
         return respond(res);
       }
 
-      // 4. SARVAM TTS
+      // 4. SARVAM TTS (Universal adapter for Android App & Web: sanitizes model, speaker, text/inputs)
       if (path === "/sarvam") {
-        const body = await request.text();
-        const res = await fetch("https://api.sarvam.ai/text-to-speech", {
+        const bodyText = await request.text();
+        let payload = {};
+        try {
+          payload = JSON.parse(bodyText);
+        } catch (e) {
+          return new Response(JSON.stringify({ error: "Invalid JSON body" }), {
+            status: 400,
+            headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" }
+          });
+        }
+
+        // 1. Extract speech text from any format (text, inputs array, inputs string, message, prompt)
+        let speechText = "";
+        if (payload.text && typeof payload.text === "string") {
+          speechText = payload.text;
+        } else if (Array.isArray(payload.inputs) && payload.inputs.length > 0) {
+          speechText = payload.inputs.join(" ");
+        } else if (typeof payload.inputs === "string") {
+          speechText = payload.inputs;
+        } else if (payload.message && typeof payload.message === "string") {
+          speechText = payload.message;
+        } else if (payload.prompt && typeof payload.prompt === "string") {
+          speechText = payload.prompt;
+        }
+
+        speechText = cleanTeluguOutput(speechText || "").trim();
+        if (!speechText) {
+          return new Response(JSON.stringify({ error: "Text is required for TTS", audios: [] }), {
+            status: 400,
+            headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" }
+          });
+        }
+
+        // 2. Normalize language code
+        let langCode = payload.target_language_code || payload.language_code || "te-IN";
+        const langMap = {
+          "te": "te-IN", "hi": "hi-IN", "en": "en-IN", "ta": "ta-IN", "kn": "kn-IN",
+          "mr": "mr-IN", "bn": "bn-IN", "gu": "gu-IN", "pa": "pa-IN", "ml": "ml-IN", "od": "od-IN"
+        };
+        if (langMap[langCode]) langCode = langMap[langCode];
+
+        // 3. Normalize model (Sarvam strictly requires 'bulbul:v4-flash' or 'bulbul:v3', rejecting bulbul:v1/v2)
+        let model = payload.model;
+        if (model !== "bulbul:v4-flash" && model !== "bulbul:v3") {
+          model = "bulbul:v4-flash";
+        }
+
+        // 4. Normalize speaker: map deprecated speakers (like 'meera') to official valid speakers
+        const defaultSpeakerByLang = {
+          "te-IN": "pooja_te_conversation",
+          "hi-IN": "kavya_hi_conversational",
+          "en-IN": "simran_en_conversation",
+          "ta-IN": "gokul_ta_narration",
+          "kn-IN": "chaitra_kn_conversation",
+          "mr-IN": "ishita_mr_conversational",
+          "bn-IN": "arnab_bn_conversation",
+          "gu-IN": "bhavik_gu_conversation",
+          "pa-IN": "anand_pa_conversation"
+        };
+
+        const validSpeakers = new Set([
+          "anushka", "abhilash", "manisha", "vidya", "arya", "karun", "hitesh", "aditya", "ritu", "priya",
+          "neha", "rahul", "pooja", "rohan", "simran", "kavya", "amit", "dev", "ishita", "shreya", "ratan",
+          "varun", "manan", "sumit", "roopa", "kabir", "aayan", "shubh", "ashutosh", "advait", "anand",
+          "tanya", "tarun", "sunny", "mani", "gokul", "vijay", "shruti", "suhani", "mohit", "kavitha",
+          "rehan", "soham", "rupali", "niharika", "aayan_hi_conversational", "amit_hi_conversational",
+          "ashutosh_hi_conversational", "kabir_hi_conversational", "kavya_hi_conversational",
+          "manan_hi_conversational", "rahul_hi_conversational", "sumit_hi_conversational",
+          "kangkana_as_conversational", "mouchumi_as_conversational", "arnab_bn_conversation",
+          "roopa_bn_conversational", "aditi_en_stories", "aparna_en_companion", "dev_en_conversational",
+          "rohan_en_recovery", "roopa_en_conversational", "simran_en_conversation", "sunny_en_social",
+          "varun_en_ads", "bhavik_gu_conversation", "aditya_hi_conversational", "chaitra_kn_conversation",
+          "chetan_kn_conversation", "ishita_mr_conversational", "anand_pa_conversation",
+          "gokul_ta_narration", "vijay_ta_narration", "kavitha_te_conversation", "pooja_te_conversation",
+          "tarun_te_narration"
+        ]);
+
+        let speaker = payload.speaker;
+        if (!speaker || !validSpeakers.has(speaker)) {
+          speaker = defaultSpeakerByLang[langCode] || "pooja_te_conversation";
+        }
+
+        // 5. Strictly send ONLY 'text' (never duplicate 'inputs') to Sarvam REST API
+        const sarvamBody = {
+          text: speechText,
+          target_language_code: langCode,
+          model: model,
+          speaker: speaker,
+          pace: (typeof payload.pace === "number" && payload.pace >= 0.5 && payload.pace <= 2.0) ? payload.pace : 1.15,
+          speech_sample_rate: payload.speech_sample_rate || 24000,
+          output_audio_codec: "wav"
+        };
+
+        let res = await fetch("https://api.sarvam.ai/text-to-speech", {
           method: "POST",
-          headers: { "Content-Type": "application/json", "API-Subscription-Key": env.SARVAM_API_KEY },
-          body
+          headers: { 
+            "Content-Type": "application/json", 
+            "API-Subscription-Key": env.SARVAM_API_KEY 
+          },
+          body: JSON.stringify(sarvamBody)
         });
-        return respond(res);
+
+        // Auto-fallback: if bulbul:v4-flash fails, retry with bulbul:v3
+        if (!res.ok && model === "bulbul:v4-flash") {
+          const fallbackBody = {
+            ...sarvamBody,
+            model: "bulbul:v3",
+            speaker: "pooja"
+          };
+          const fallbackRes = await fetch("https://api.sarvam.ai/text-to-speech", {
+            method: "POST",
+            headers: { 
+              "Content-Type": "application/json", 
+              "API-Subscription-Key": env.SARVAM_API_KEY 
+            },
+            body: JSON.stringify(fallbackBody)
+          });
+          if (fallbackRes.ok) {
+            res = fallbackRes;
+          }
+        }
+
+        if (!res.ok) {
+          return respond(res);
+        }
+
+        // Format unified response for both Android App and Web UI
+        const ttsData = await res.json();
+        const firstAudio = (ttsData.audios && ttsData.audios[0]) ? ttsData.audios[0] : "";
+        const unified = {
+          request_id: ttsData.request_id || ("tts-" + Date.now()),
+          audios: ttsData.audios || [firstAudio],
+          audio: firstAudio,
+          audio_content: firstAudio
+        };
+
+        return new Response(JSON.stringify(unified), {
+          status: 200,
+          headers: {
+            "Content-Type": "application/json",
+            "Access-Control-Allow-Origin": "*",
+            "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+            "Access-Control-Allow-Headers": "*"
+          }
+        });
       }
 
       // 5. SARVAM STT
