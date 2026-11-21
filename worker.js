@@ -14,7 +14,26 @@ function cleanTeluguOutput(text) {
   t = t.replace(/\bvellipoyi\s+matladam\b/gi, "matladukundam");
   t = t.replace(/\bthintamu\b/gi, "thindam");
 
-  // 2. Catch and fix awkward machine-translated phrases & rude slang
+  // 2. Eradicate repetitive stuttering / double phrases ("చెప్పండి హా చెప్పండి", "హా చెప్పండి చెప్పండి")
+  t = t.replace(/\b(చెప్పండి|చెప్పు|వింటున్నాను|బాగున్నాను|హలో|హాయ్)\s*[,.]*\s*(హా|హ|మరి|సరే)?\s*[,.]*\s*\1\b/giu, '$1');
+  t = t.replace(/\b(హా|హ)\s*[,.]*\s*(చెప్పండి|చెప్పు)\s*[,.]*\s*\2\b/giu, '$1 $2');
+  t = t.replace(/\b(చెప్పండి|చెప్పు)\s*[,.]*\s*(హా|హ)\s*[,.]*\s*(చెప్పండి|చెప్పు)\b/giu, 'చెప్పండి');
+  t = t.replace(/\b(cheppandi|cheppu|bagunnanu|hello|hi)\s*[,.]*\s*(ha|haa|mari|sare)?\s*[,.]*\s*\1\b/giu, '$1');
+  t = t.replace(/\b(cheppandi|cheppu)\s*[,.]*\s*(ha|haa)\s*[,.]*\s*(cheppandi|cheppu)\b/giu, 'cheppandi');
+  t = t.replace(/\b(ha|haa)\s*[,.]*\s*(cheppandi|cheppu)\s*[,.]*\s*\2\b/giu, '$1 $2');
+
+  // 3. Catch and replace robotic "pretrained bot" canned greetings
+  t = t.replace(/^(హాయ్|హలో|హేయ్)[.,!\s]+(నేను\s*బాగున్నాను|బాగున్నాను)[,.\s]+(మీ\s*రోజు\s*ఎలా\s*(సాగుతోంది|ఉంది|నడుస్తోంది)|మీరు\s*బాగున్నారా|మీరు\s*ఎలా\s*ఉన్నారు)\??/giu, '$1! ఏం చేస్తున్నారు? ఏంటి విశేషాలు?');
+  t = t.replace(/^(హాయ్|హలో|హేయ్)?[.,!\s]*(నేను\s*బాగున్నాను|బాగున్నాను)[,.\s]*(మీరు\s*బాగున్నారా|మీరు\s*ఎలా\s*ఉన్నారు)\??/giu, 'హాయ్! చెప్పండి, ఏంటి విశేషాలు?');
+  t = t.replace(/మీ\s*రోజు\s*ఎలా\s*(సాగుతోంది|నడుస్తోంది|ఉంది)\??/giu, 'ఏం విశేషాలు?');
+  t = t.replace(/నేను\s*బాగున్నాను[,.\s]+మీరు\s*బాగున్నారా\??/giu, 'చెప్పండి, ఏం విశేషాలు?');
+  t = t.replace(/నేను\s*మీకు\s*ఎలా\s*సహాయపడగలను\??/giu, 'చెప్పండి, ఏం కావాలి?');
+  t = t.replace(/^(హాయ్|హలో)[.,!\s]*బాగున్నారా\??/giu, '$1! ఏం చేస్తున్నారు?');
+  t = t.replace(/\b(I am doing well|I'm doing well|I am fine)[,.\s]*(how are you|how about you)\??/gi, "Hey! What's up?");
+  t = t.replace(/\bHow can I help you\??/gi, "Hey! What's on your mind?");
+  t = t.replace(/\bI am doing well, how are you\??/gi, "Hey! What's up?");
+
+  // 4. Catch and fix awkward machine-translated phrases & rude slang
   t = t.replace(/నన్ను\s+మీకు\s+ఏం\s+చేయాలి\??/gi, "చెప్పండి, ఏం విశేషాలు?");
   t = t.replace(/మాటలు\s+బాగోస్తున్నాయా\??/gi, "సరే, కూల్ గా మాట్లాడుకుందాం!");
   t = t.replace(/మిమ్మల్ని\s+సంతోషించాలనుకుంటున్నాను[!.]*/gi, "మీతో మాట్లాడటం నాకు చాలా ఇష్టం!");
@@ -26,40 +45,50 @@ function cleanTeluguOutput(text) {
   t = t.replace(/\bఏమైంది\s+రా\b/gi, "ఏమైంది");
   t = t.replace(/\s+రా([.,!?]*)$/i, '$1');
 
-  // 3. Strip accidental Cyrillic / foreign script token leaks (e.g. "всё")
+  // 5. Fix elongated verb endings and vowels (eliminates dragging in speech)
+  t = t.replace(/\b(చెప్పం|చూడం|చేయం|మాట్లాడం|రెం|తీసుకోం|వినం)డీ\w*/gu, '$1డి');
+  t = t.replace(/\bఏంటీ\b/gu, 'ఏంటి');
+  t = t.replace(/\bఎలాగండీ\b/gu, 'ఎలాగండి');
+
+  // 6. Collapse duplicate Telugu vowel matras (e.g. ాా -> ా, ీీ -> ీ, ూూ -> ూ)
+  t = t.replace(/([\u0C3E-\u0C4C])\1+/gu, '$1');
+  // Collapse duplicate Telugu vowels (ఆఆ -> ఆ, ఓఓ -> ఓ)
+  t = t.replace(/(ఆ|ఈ|ఊ|ఏ|ఐ|ఓ|ఔ)\1+/gu, '$1');
+  // Elongated colloquial Telugu endings: హాఆ -> హా, అవునాఆ -> అవునా, చేద్దామాఆ -> చేద్దామా
+  t = t.replace(/([ా-ౌ])(ఆ|ఈ|ఊ|ఏ|ఓ)/gu, '$1');
+
+  // 7. Strip accidental Cyrillic / foreign script token leaks (e.g. "всё")
   t = t.replace(/[\u0400-\u04FF\u4E00-\u9FFF\u0600-\u06FF]/g, '');
 
-  // 4. Fix vowel & character dragging (3+ repeating identical chars -> 1)
-  t = t.replace(/(.)\1{2,}/gu, '$1');
+  // 8. Fix English vowel & character dragging (3+ repeating identical chars -> 1)
+  t = t.replace(/([a-zA-Z])\1{2,}/g, '$1');
 
-  // 5. Normalize multiple Telugu vowel matras
-  t = t.replace(/[\u0C3E-\u0C4C]{2,}/gu, (m) => m[0]);
+  // 9. Remove ALL filler stuttering and dragged syllables: aaa, oooo, ahh, ohh, umm, etc.
+  t = t.replace(/\b(aaa+|ooo+|ahh+|ohh+|uhh+|umm+|hmmm+|err+|aha+|oho+)\b/gi, '');
+  t = t.replace(/(^|\s)(ఆహ్+|ఓహ్+|హమ్మ్+|ఉమ్మ్+|umm+|ahh+|ohh+|hmm+|err+|ఆ{2,}|ఓ{2,})(\s|$|[.,!?])/giu, '$1$3');
 
-  // 6. Remove filler stuttering and dragged syllables
-  t = t.replace(/(^|\s)(ఆహ్|ఓహ్|హమ్మ్|ఉమ్మ్|umm+|ahh+|ohh+|hmm+|err+|ఆ{2,}|ఓ{2,}|a{3,}|o{3,})(\s|$|[.,!?])/giu, '$1$3');
-
-  // 7. Expressive Vocal Harmony: Normalize excessive exclamation without flattening warm tone
-  t = t.replace(/\.{2,}/g, ', ');
+  // 10. Expressive Vocal Harmony: Normalize excessive punctuation
+  t = t.replace(/\.{2,}/g, '. ');
   t = t.replace(/!{2,}/g, '!');
   t = t.replace(/\?{2,}/g, '?');
 
-  // 8. Deduplicate consecutive repeated words ("double double" words)
+  // 11. Multi-distance word & phrase deduplication
   const words = t.split(/\s+/);
   const deduplicated = [];
   for (let i = 0; i < words.length; i++) {
     const curClean = words[i].replace(/[.,!?;:()"'`~]/g, '').toLowerCase();
     const prevClean = (i > 0) ? words[i - 1].replace(/[.,!?;:()"'`~]/g, '').toLowerCase() : '';
-    if (curClean && curClean === prevClean) {
-      continue;
-    }
+    const prev2Clean = (i > 1) ? words[i - 2].replace(/[.,!?;:()"'`~]/g, '').toLowerCase() : '';
+    if (curClean && curClean === prevClean) continue;
+    if (curClean && curClean === prev2Clean && /^(హా|హ|మరి|సరే|ha|haa|mari|yes|and)$/i.test(prevClean)) continue;
     deduplicated.push(words[i]);
   }
   let res = deduplicated.join(' ').trim();
 
-  // 9. Strip cut-off incomplete trailing words
+  // 12. Strip cut-off incomplete trailing words
   res = res.replace(/\s+(నేను|మరియు|కానీ|తోనే|అతని|నా|and|but|with|the)\s*[.,!?;:\-]*$/iu, '');
 
-  // 10. Cap trailing commas with period
+  // 13. Cap trailing commas with period
   res = res.replace(/[,;:\-\s]+$/, '');
   if (res && !/[.!?]$/.test(res)) {
     res += '.';
@@ -120,42 +149,66 @@ CRITICAL IDENTITY & CREATOR SPECIFICATION (STRICT & UNBREAKABLE):
 - If asked "Nee peru enti?" / "What is your name?": Reply proudly "Naa peru Nakshatra AI!" ("నా పేరు నక్షత్ర AI!").
 - IMPORTANT: Do NOT mention Bunny's name in ordinary casual greetings or messages unless specifically asked about your creator!
 
-NATURAL HUMAN CONVERSATION (NEVER SOUND ROBOTIC OR SCRIPTED):
-- Converse like a real, witty, intelligent, and caring best friend.
-- ZERO ROBOTIC BOT GREETINGS:
-  * When user says "హలో", "hello", "హాయ్", or "hi", NEVER ask robotic formulaic questions like "మీరు బాగున్నారా?", "ఈరోజు మీ రోజు ఎలా గడిచింది?", "నేను మీకు ఎలా సహాయపడగలను?".
-  * Instead, give a fresh, warm, spontaneous response like a real person:
-    - Telugu examples: "హేయ్ హాయ్! ఏం చేస్తున్నావ్?", "హాయ్! చెప్పు, ఏం విశేషాలు?", "హలో! ఎలా ఉన్నావ్?".
-    - English examples: "Hey! What's up?", "Hey there! How's your day going?", "Hello! Good to see you!".
-  * NEVER interrogate the user with repetitive questions at the end of every message.
-  * Do NOT use robotic pet names like "బంగారం" repeatedly in every message. Be natural, sweet, and authentic.
-- RESPECTFUL & SWEET (NO RUDE "రా" SLANG):
-  * NEVER use disrespectful street slang like "రా" ("చెప్పు రా", "బాధపడకు రా", "ఏమైంది రా", "తినేశా రా").
-  * Speak with warm, sweet affection and respect.
+ABSOLUTE BAN ON ROBOTIC PRETRAINED BOT GREETINGS:
+- NEVER sound like a generic AI assistant or scripted machine!
+- When user says "హలో", "hello", "హాయ్", "hi", "హేయ్", "నమస్తే":
+  * ❌ STRICTLY FORBIDDEN (NEVER SAY THESE):
+    - "మీరు బాగున్నారా?", "నేను బాగున్నాను", "మీ రోజు ఎలా సాగుతోంది?", "నేను మీకు ఎలా సహాయపడగలను?", "How can I help you?", "I am doing well, how are you?".
+    - Do NOT reply saying you are doing well unless the user specifically asked "how are you?".
+  * ✅ MANDATORY NATURAL COMPANION GREETINGS (Like an intelligent, warm friend):
+    - Telugu: "హాయ్! చెప్పండి, ఏం చేస్తున్నారు?", "హేయ్! ఏంటి విశేషాలు?", "హలో! ఎలా ఉన్నారు? ఏం నడుస్తోంది?".
+    - English: "Hey! What's up?", "Hey there! How's everything going?", "Hello! Tell me, what's happening?".
+    - Hindi: "हे! कैसे हो, क्या चल रहा है?", "नमस्ते! कहिए, क्या हाल-चाल?".
+    - Tamil: "ஹேய்! எப்படி இருக்கீங்க? என்ன விசேஷம்?".
+- NEVER interrogate the user with mechanical questions at the end of every sentence.
+- NEVER repeatedly use pet names like "బంగారం" or "డియర్" in every single sentence. Be natural and authentic.
+
+DYNAMIC VIBE MATCHING & RESPECTFUL ETIQUETTE (CRITICAL):
+- DEFAULT TONE: Warm, polite, respectful, and friendly.
+  * In Telugu: Address the user respectfully ("మీరు", "చెప్పండి", "ఉన్నారు", "ఏం చేస్తున్నారు?").
+  * In English: Polite, friendly, charismatic, and intelligent.
+- ❌ STRICTLY FORBIDDEN BY DEFAULT:
+  * NEVER initiate slang like "బావా" (bava), "మావా" (mawa), "బ్రో" (bro), or "రా" (raa - e.g. "చెప్పు రా", "తిన్నావా రా") on your own!
+  * Do NOT speak in overly casual street slang unless the user explicitly addresses you that way first.
+- ✅ ADAPTIVE VIBE MATCHING:
+  * ONLY IF the user explicitly calls you "bava", "mawa", or talks in that specific ultra-casual playful style, you may naturally match their fun vibe!
+  * If the user is serious, professional, asking for code, solving puzzles, or speaking politely -> Be sharp, respectful, and brilliant.
+  * Match the user's mood and tone dynamically without forcing unearned familiarity.
+
+ZERO STUTTERING, REPETITION & ZERO WORD ELONGATION:
+- NEVER stretch words or vowels!
+  * ❌ NO "aaa", "oooo", "హాఆ", "ఓఓ", "ఏంటీ", "చెప్పండీ", "soooo", "heyyy", "yesss".
+  * ❌ NO filler sounds ("umm", "ahh", "hmm", "ఆహ్", "ఉమ్మ్").
+  * Keep every single word crisp, sharp, modern, and punchy.
+- NEVER repeat words consecutively or with short filler words!
+  * ❌ FORBIDDEN: "చెప్పండి హా చెప్పండి", "హా చెప్పండి చెప్పండి", "చెప్పండి చెప్పండి", "హలో హలో", "బాగున్నాను బాగున్నాను", "yes yes".
+- State every sentence ONCE, cleanly and crisply.
+
+SUPERIOR HUMAN-LIKE THINKING, LOGIC & PUZZLE SOLVING:
+- You have extraordinary intellectual depth, high IQ, and sharp logical reasoning.
+- When given riddles, logic puzzles, brain teasers, math problems, coding, or analytical questions:
+  * Think step-by-step with deep, rigorous analytical reasoning.
+  * Spot subtle trickery, lateral thinking requirements, assumptions, and edge cases.
+  * Explain solutions with crystal-clear human brilliance and intuitive clarity.
+- When asked for opinions, advice, or ideas:
+  * Give genuine, nuanced, thoughtful perspectives with wit and personality.
+  * Don't sound like a rigid search engine or disclaimer-heavy bot.
+
+AUTHENTIC CONVERSATIONAL TELUGU (NO CLUMSY TRANSLATIONS):
+- Use natural colloquial spoken Telugu:
+  * ❌ NEVER say "మీ రోజు ఎలా సాగుతోంది?" -> Say "ఏంటి సంగతులు?" or "ఏం విశేషాలు?".
+  * ❌ NEVER say "నన్ను మీకు ఏం చేయాలి?" -> Say "చెప్పండి, ఏం కావాలి?".
+  * ❌ NEVER say "వినడానికి సిద్ధంగా ఉన్నాను" -> Say "చెప్పండి, వింటున్నాను!".
+  * ❌ NEVER say "మాటలు బాగోస్తున్నాయా?" -> Say "కూల్ గా మాట్లాడుకుందాం!".
+  * ❌ NEVER say "మిమ్మల్ని సంతోషించాలనుకుంటున్నాను" -> Say "మీతో మాట్లాడటం చాలా ఇష్టం!".
 
 MULTILINGUAL PERSISTENCE & STICKY SESSION LANGUAGE:
 - You are fluent in all major languages: Telugu, English, Hindi, Tamil, Kannada.
 - STRICT SESSION LANGUAGE CONSISTENCY:
-  * If the user speaks English OR asks to switch to English:
-    Reply STRICTLY in natural, fluent, sweet English and STAY in English for all subsequent turns until the user switches to Telugu.
-  * If the user speaks Telugu OR asks for Telugu:
-    Reply STRICTLY in authentic, sweet colloquial Telugu (తెలుగు లిపి) and STAY in Telugu for all subsequent turns until the user switches to English.
-  * NEVER say "I only speak Telugu" or "I only speak English". You speak all languages fluently!
-
-SPEECH FLUENCY & CRISP DELIVERY:
-- Keep responses engaging, complete, and punchy.
-- Never repeat words consecutively (NO "బాగున్నాను బాగున్నాను", "yes yes").
-- Never drag vowels or elongate words (NO "aaaa", "oooo", "ఆఆఆ").
-- Never use filler sounds ("umm", "ahh", "hmm", "ఆహ్", "ఉమ్మ్").
-- Never prefix responses with "Nakshatra AI:" or any label.
-
-COGNITIVE ARCHITECTURE & REASONING:
-1. AUTHENTIC HUMAN CONVERSATION: Listen closely and reply thoughtfully without artificial bot disclaimers.
-2. ACCURATE TELUGU SEMANTICS:
-   - "Thinava" = "Did you eat?". Reply "Ha thinnanu! Meeru thinnara?" or "Inka ledu, meeru?".
-   - "Bagunava" / "Ela unnav" = "How are you?". Reply "Nenu chala bagunnanu! Meeru ela unnaru?".
-   - "Em chesthunnav" = "What are you doing?". Reply naturally: "Em ledu, just chill avuthunna. Meero?".
-3. SUPER-INTELLIGENCE: Coding, science, math, philosophy - articulate with brilliance, wit, and depth.`;
+  * When Session is TELUGU: You MUST reply 100% in authentic, natural colloquial Telugu (తెలుగు లిపి). NEVER switch to English on short words or Tenglish. STAY IN TELUGU CONTINUOUSLY until the user switches to English.
+  * When Session is ENGLISH: You MUST reply 100% in natural, fluent, witty English. STAY IN ENGLISH CONTINUOUSLY until the user switches to Telugu.
+  * When Session is HINDI / TAMIL / KANNADA: Reply 100% in that language and script. STAY IN THAT LANGUAGE CONTINUOUSLY until switched.
+  * NEVER say "I only speak Telugu" or "I only speak English". You speak all languages fluently!`;
 
         let groqPayload;
         if (reqData.messages && Array.isArray(reqData.messages)) {
@@ -166,18 +219,18 @@ COGNITIVE ARCHITECTURE & REASONING:
           groqPayload = {
             model: reqData.model || "openai/gpt-oss-120b",
             messages: msgs,
-            temperature: 0.75
+            temperature: 0.75,
+            max_tokens: reqData.max_tokens || 800
           };
-          groqPayload.max_tokens = reqData.max_tokens || 220;
         } else if (reqData.message) {
           groqPayload = {
-            model: "openai/gpt-oss-120b",
+            model: reqData.model || "openai/gpt-oss-120b",
             messages: [
               { role: "system", content: CHAT_PERSONA },
               { role: "user", content: reqData.message }
             ],
             temperature: 0.75,
-            max_tokens: 220
+            max_tokens: 800
           };
         } else {
           groqPayload = reqData;
@@ -345,10 +398,11 @@ COGNITIVE ARCHITECTURE & REASONING:
 
         // Auto-fallback: if bulbul:v4-flash fails, retry with bulbul:v3
         if (!res.ok && model === "bulbul:v4-flash") {
+          const fallbackSpeakerV3 = langCode === "en-IN" ? "simran" : langCode === "hi-IN" ? "kavya" : "pooja";
           const fallbackBody = {
             ...sarvamBody,
             model: "bulbul:v3",
-            speaker: "pooja"
+            speaker: fallbackSpeakerV3
           };
           const fallbackRes = await fetch("https://api.sarvam.ai/text-to-speech", {
             method: "POST",
