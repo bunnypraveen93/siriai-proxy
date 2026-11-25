@@ -127,25 +127,32 @@ export default {
     const path = url.pathname;
 
     try {
+      if (path === "/" || path === "/health") {
+        return jsonResponse({ ok: true, service: "siriai-proxy" });
+      }
+
       if (path === "/models") {
-        const res = await fetch("[https://api.groq.com/openai/v1/models](https://api.groq.com/openai/v1/models)", {
-          headers: { "Authorization": `Bearer ${env.GROQ_API_KEY}` }
+        const groqKey = getCleanSecret(env, "GROQ_API_KEY");
+        if (!groqKey) return missingSecretResponse("GROQ_API_KEY");
+
+        const res = await fetch("https://api.groq.com/openai/v1/models", {
+          headers: { "Authorization": `Bearer ${groqKey}` }
         });
         return respond(res);
       }
 
       // 1. GROQ CHAT ENDPOINT (Supports Android App & Web Chat UI)
       if (path === "/groq") {
+        const groqKey = getCleanSecret(env, "GROQ_API_KEY");
+        if (!groqKey) return missingSecretResponse("GROQ_API_KEY");
+
         const bodyText = await request.text();
         let reqData;
 
         try {
           reqData = JSON.parse(bodyText);
         } catch (e) {
-          return new Response(JSON.stringify({ error: "Invalid JSON body" }), {
-            status: 400,
-            headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" }
-          });
+          return jsonResponse({ error: "Invalid JSON body" }, 400);
         }
 
         const CHAT_PERSONA = `You are Nakshatra AI (created solely by Bunny / Praveen).
@@ -193,16 +200,27 @@ CHATGPT-STYLE FORMATTING RULES:
           groqPayload = reqData;
         }
 
-        const res = await fetch("[https://api.groq.com/openai/v1/chat/completions](https://api.groq.com/openai/v1/chat/completions)", {
+        const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            "Authorization": `Bearer ${env.GROQ_API_KEY}`
+            "Authorization": `Bearer ${groqKey}`
           },
           body: JSON.stringify(groqPayload)
         });
 
-        const data = await res.json();
+        const rawText = await res.text();
+        let data;
+        try {
+          data = JSON.parse(rawText);
+        } catch (parseErr) {
+          return jsonResponse({ error: `Upstream Groq error (HTTP ${res.status}): ${rawText.slice(0, 200)}` }, res.status || 502);
+        }
+
+        if (!res.ok) {
+          return jsonResponse(data, res.status);
+        }
+
         const isLiveMode = reqData.mode === "live";
 
         if (reqData.message && !reqData.messages) {
@@ -211,27 +229,28 @@ CHATGPT-STYLE FORMATTING RULES:
           if (data.choices && data.choices[0] && data.choices[0].message) {
             data.choices[0].message.content = aiText;
           }
-          return new Response(JSON.stringify({ response: aiText }), {
-            status: res.status,
-            headers: { "Content-Type": "application/json; charset=utf-8", "Access-Control-Allow-Origin": "*" }
-          });
+          return jsonResponse({ response: aiText }, res.status);
         }
 
         if (data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content) {
           data.choices[0].message.content = cleanTeluguOutput(data.choices[0].message.content, !isLiveMode);
         }
 
-        return respond(new Response(JSON.stringify(data), { status: res.status, headers: { "Content-Type": "application/json; charset=utf-8" } }));
+        return jsonResponse(data, res.status);
       }
 
       // 2. GROQ STT (Speech-to-Text)
       if (path === "/groq-stt") {
-        const res = await fetch("[https://api.groq.com/openai/v1/audio/transcriptions](https://api.groq.com/openai/v1/audio/transcriptions)", {
+        const groqKey = getCleanSecret(env, "GROQ_API_KEY");
+        if (!groqKey) return missingSecretResponse("GROQ_API_KEY");
+
+        const headers = { "Authorization": `Bearer ${groqKey}` };
+        const contentType = request.headers.get("Content-Type");
+        if (contentType) headers["Content-Type"] = contentType;
+
+        const res = await fetch("https://api.groq.com/openai/v1/audio/transcriptions", {
           method: "POST",
-          headers: {
-            "Authorization": `Bearer ${env.GROQ_API_KEY}`,
-            "Content-Type": request.headers.get("Content-Type")
-          },
+          headers,
           body: request.body
         });
         return respond(res);
@@ -239,11 +258,15 @@ CHATGPT-STYLE FORMATTING RULES:
 
       // 3. ELEVENLABS TTS
       if (path === "/elevenlabs") {
+        const elevenLabsKey = getCleanSecret(env, "ELEVENLABS_API_KEY");
+        if (!elevenLabsKey) return missingSecretResponse("ELEVENLABS_API_KEY");
+
         const body = await request.text();
-        const voiceId = url.searchParams.get("voice_id") || "EXAVITQu4vr4xnSDxMaL";
-        const res = await fetch(`[https://api.elevenlabs.io/v1/text-to-speech/$](https://api.elevenlabs.io/v1/text-to-speech/$){voiceId}`, {
+        const rawVoiceId = url.searchParams.get("voice_id") || "";
+        const voiceId = /^[a-zA-Z0-9_-]{1,64}$/.test(rawVoiceId) ? rawVoiceId : "EXAVITQu4vr4xnSDxMaL";
+        const res = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`, {
           method: "POST",
-          headers: { "Content-Type": "application/json", "xi-api-key": env.ELEVENLABS_API_KEY },
+          headers: { "Content-Type": "application/json", "xi-api-key": elevenLabsKey },
           body
         });
         return respond(res);
@@ -251,15 +274,15 @@ CHATGPT-STYLE FORMATTING RULES:
 
       // 4. SARVAM TTS (Universal adapter for Android App & Web)
       if (path === "/sarvam") {
+        const sarvamKey = getCleanSecret(env, "SARVAM_API_KEY");
+        if (!sarvamKey) return missingSecretResponse("SARVAM_API_KEY");
+
         const bodyText = await request.text();
         let payload = {};
         try {
           payload = JSON.parse(bodyText);
         } catch (e) {
-          return new Response(JSON.stringify({ error: "Invalid JSON body" }), {
-            status: 400,
-            headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" }
-          });
+          return jsonResponse({ error: "Invalid JSON body" }, 400);
         }
 
         let speechText = "";
@@ -278,10 +301,7 @@ CHATGPT-STYLE FORMATTING RULES:
         // Flatten markdown for smooth TTS speech
         speechText = cleanTeluguOutput(speechText || "", false).trim();
         if (!speechText) {
-          return new Response(JSON.stringify({ error: "Text is required for TTS", audios: [] }), {
-            status: 400,
-            headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" }
-          });
+          return jsonResponse({ error: "Text is required for TTS", audios: [] }, 400);
         }
 
         let langCode = payload.target_language_code || payload.language_code || "te-IN";
@@ -341,11 +361,11 @@ CHATGPT-STYLE FORMATTING RULES:
           output_audio_codec: "wav"
         };
 
-        let res = await fetch("[https://api.sarvam.ai/text-to-speech](https://api.sarvam.ai/text-to-speech)", {
+        let res = await fetch("https://api.sarvam.ai/text-to-speech", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            "API-Subscription-Key": env.SARVAM_API_KEY
+            "API-Subscription-Key": sarvamKey
           },
           body: JSON.stringify(sarvamBody)
         });
@@ -358,11 +378,11 @@ CHATGPT-STYLE FORMATTING RULES:
             model: "bulbul:v3",
             speaker: fallbackSpeakerV3
           };
-          const fallbackRes = await fetch("[https://api.sarvam.ai/text-to-speech](https://api.sarvam.ai/text-to-speech)", {
+          const fallbackRes = await fetch("https://api.sarvam.ai/text-to-speech", {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
-              "API-Subscription-Key": env.SARVAM_API_KEY
+              "API-Subscription-Key": sarvamKey
             },
             body: JSON.stringify(fallbackBody)
           });
@@ -397,12 +417,16 @@ CHATGPT-STYLE FORMATTING RULES:
 
       // 5. SARVAM STT
       if (path === "/sarvam-stt") {
-        const res = await fetch("[https://api.sarvam.ai/speech-to-text](https://api.sarvam.ai/speech-to-text)", {
+        const sarvamKey = getCleanSecret(env, "SARVAM_API_KEY");
+        if (!sarvamKey) return missingSecretResponse("SARVAM_API_KEY");
+
+        const headers = { "API-Subscription-Key": sarvamKey };
+        const contentType = request.headers.get("Content-Type");
+        if (contentType) headers["Content-Type"] = contentType;
+
+        const res = await fetch("https://api.sarvam.ai/speech-to-text", {
           method: "POST",
-          headers: {
-            "API-Subscription-Key": env.SARVAM_API_KEY,
-            "Content-Type": request.headers.get("Content-Type")
-          },
+          headers,
           body: request.body
         });
         return respond(res);
@@ -410,10 +434,13 @@ CHATGPT-STYLE FORMATTING RULES:
 
       // 6. SERPER SEARCH
       if (path === "/serper") {
+        const serperKey = getCleanSecret(env, "SERPER_API_KEY");
+        if (!serperKey) return missingSecretResponse("SERPER_API_KEY");
+
         const body = await request.text();
-        const res = await fetch("[https://google.serper.dev/search](https://google.serper.dev/search)", {
+        const res = await fetch("https://google.serper.dev/search", {
           method: "POST",
-          headers: { "Content-Type": "application/json", "X-API-KEY": env.SERPER_API_KEY },
+          headers: { "Content-Type": "application/json", "X-API-KEY": serperKey },
           body
         });
         return respond(res);
@@ -421,28 +448,47 @@ CHATGPT-STYLE FORMATTING RULES:
 
       // 7. YOUTUBE PROXY
       if (path.startsWith("/youtube/")) {
+        const youtubeKey = getCleanSecret(env, "YOUTUBE_API_KEY");
+        if (!youtubeKey) return missingSecretResponse("YOUTUBE_API_KEY");
+
         const apiPath = path.replace("/youtube", "");
         if (apiPath !== "/v3/search" && apiPath !== "/v3/playlistItems") {
-          return new Response("Not allowed", { status: 403 });
+          return jsonResponse({ error: "Not allowed" }, 403);
         }
-        const target = new URL("[https://www.googleapis.com/youtube](https://www.googleapis.com/youtube)" + apiPath);
+        const target = new URL("https://www.googleapis.com/youtube" + apiPath);
         url.searchParams.forEach((v, k) => {
           if (k !== "key") target.searchParams.set(k, v);
         });
-        target.searchParams.set("key", env.YOUTUBE_API_KEY);
+        target.searchParams.set("key", youtubeKey);
         const res = await fetch(target.toString());
         return respond(res);
       }
 
-      return new Response("Not found", { status: 404 });
+      return jsonResponse({ error: "Not found" }, 404);
     } catch (e) {
-      return new Response(JSON.stringify({ error: "Proxy error: " + e.message }), {
-        status: 500,
-        headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" }
-      });
+      return jsonResponse({ error: "Proxy error: " + (e?.message || "Unknown upstream error") }, 500);
     }
   }
 };
+
+function getCleanSecret(env, keyName) {
+  const val = env && env[keyName];
+  return typeof val === "string" ? val.trim() : "";
+}
+
+function missingSecretResponse(keyName) {
+  return jsonResponse({ error: `Missing ${keyName} secret in Cloudflare Worker environment.` }, 500);
+}
+
+function jsonResponse(data, status = 200) {
+  return new Response(JSON.stringify(data), {
+    status,
+    headers: {
+      "Content-Type": "application/json; charset=utf-8",
+      "Access-Control-Allow-Origin": "*"
+    }
+  });
+}
 
 function respond(res) {
   return new Response(res.body, {
