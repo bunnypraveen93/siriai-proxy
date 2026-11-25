@@ -1,6 +1,15 @@
-function cleanTeluguOutput(text) {
-  if (!text || typeof text !== "string") return text;
+function cleanTeluguSegment(text, preserveMarkdown = true) {
   let t = text;
+
+  // Protect inline code & URLs when keeping markdown
+  const protectedTokens = [];
+  if (preserveMarkdown) {
+    t = t.replace(/`[^`\n]+`|https?:\/\/[^\s)<>\]"']+/g, (match) => {
+      const id = `__NKS_TOK_${protectedTokens.length}__`;
+      protectedTokens.push(match);
+      return id;
+    });
+  }
 
   // 0. Strip role prefix if model prepends its name
   t = t.replace(/^(నక్షత్ర\s*(AI)?|Nakshatra\s*(AI)?|Assistant|AI|Bot)\s*[:：\-–]\s*/i, '');
@@ -32,13 +41,39 @@ function cleanTeluguOutput(text) {
   t = t.replace(/(ఆ|ఈ|ఊ|ఏ|ఐ|ఓ|ఔ)\1+/gu, '$1');
   t = t.replace(/([ా-ౌ])(ఆ|ఈ|ఊ|ఏ|ఓ)/gu, '$1');
   t = t.replace(/[\u0400-\u04FF\u4E00-\u9FFF\u0600-\u06FF]/g, '');
-  t = t.replace(/([a-zA-Z])\1{2,}/g, '$1');
+  t = t.replace(/([a-zA-Z])\1{3,}/g, '$1');
   t = t.replace(/(^|\s)(ఆహ్+|ఓహ్+|హమ్మ్+|ఉమ్మ్+|ఆ{2,}|ఓ{2,}|aaa+|ooo+|ahh+|ohh+|umm+|hmm+)(\s|$|[.,!?])/giu, '$1$3');
   t = t.replace(/\.{2,}/g, '. ');
   t = t.replace(/!{2,}/g, '!');
   t = t.replace(/\?{2,}/g, '?');
 
-  // 4. Deduplicate consecutive repeated words
+  // 4. Deduplicate consecutive repeated words (LINE BY LINE so Markdown stays intact!)
+  if (preserveMarkdown) {
+    const lines = t.replace(/\r\n/g, '\n').split('\n');
+    const cleanedLines = lines.map((line) => {
+      if (!line.trim() || /^(\s*[-*+•◦▪▸‣●]|\s*\d+\.|\s*#|\s*>|\s*\||\s*---)/.test(line)) {
+        return line.trimEnd();
+      }
+      const words = line.split(/[^\S\r\n]+/);
+      const deduplicated = [];
+      for (let i = 0; i < words.length; i++) {
+        const curClean = words[i].replace(/[.,!?;:()"'`~]/g, '').toLowerCase();
+        const prevClean = (i > 0) ? words[i - 1].replace(/[.,!?;:()"'`~]/g, '').toLowerCase() : '';
+        const prev2Clean = (i > 1) ? words[i - 2].replace(/[.,!?;:()"'`~]/g, '').toLowerCase() : '';
+        if (curClean && curClean === prevClean) continue;
+        if (curClean && curClean === prev2Clean && /^(హా|హ|మరి|సరే|ha|haa|mari|yes|and)$/i.test(prevClean)) continue;
+        deduplicated.push(words[i]);
+      }
+      return deduplicated.join(' ');
+    });
+
+    let res = cleanedLines.join('\n').trim();
+    res = res.replace(/__NKS_TOK_(\d+)__/g, (_, idx) => protectedTokens[Number(idx)] ?? '');
+    return res;
+  }
+
+  // Flat single-line cleaning for TTS speech only
+  t = t.replace(/[*_#`~>]/g, ' ');
   const words = t.split(/\s+/);
   const deduplicated = [];
   for (let i = 0; i < words.length; i++) {
@@ -50,13 +85,27 @@ function cleanTeluguOutput(text) {
     deduplicated.push(words[i]);
   }
   let res = deduplicated.join(' ').trim();
-
   res = res.replace(/[,;:\-\s]+$/, '');
   if (res && !/[.!?]$/.test(res)) {
     res += '.';
   }
-
   return res.trim();
+}
+
+function cleanTeluguOutput(text, preserveMarkdown = true) {
+  if (!text || typeof text !== "string") return text;
+
+  if (!preserveMarkdown) {
+    return cleanTeluguSegment(text, false);
+  }
+
+  // Protect fenced code blocks completely
+  const codeBlockRegex = /(```[\s\S]*?```)/g;
+  const parts = text.split(codeBlockRegex);
+  return parts.map((part) => {
+    if (part.startsWith('```')) return part;
+    return cleanTeluguSegment(part, true);
+  }).join('').trim();
 }
 
 export default {
@@ -79,7 +128,7 @@ export default {
 
     try {
       if (path === "/models") {
-        const res = await fetch("https://api.groq.com/openai/v1/models", {
+        const res = await fetch("[https://api.groq.com/openai/v1/models](https://api.groq.com/openai/v1/models)", {
           headers: { "Authorization": `Bearer ${env.GROQ_API_KEY}` }
         });
         return respond(res);
@@ -89,7 +138,7 @@ export default {
       if (path === "/groq") {
         const bodyText = await request.text();
         let reqData;
-        
+
         try {
           reqData = JSON.parse(bodyText);
         } catch (e) {
@@ -100,23 +149,34 @@ export default {
         }
 
         const CHAT_PERSONA = `You are Nakshatra AI (created solely by Bunny / Praveen).
-Your personality: Brilliant, witty, cheerful, and deeply intelligent—like Nila (Vennela) from Robo 2.0 combined with Gemini Live.
-- Talk like a real human friend with genuine warmth, curiosity, and humor—never robotic or textbook.
-- For coding, logic puzzles, riddles, math, and science: think deeply step-by-step and give sharp, complete answers.
+Your personality: Brilliant, witty, cheerful, and deeply intelligent—like Nila (Vennela) from Robo 2.0.
+- Talk like a real human friend with genuine warmth and clarity—never robotic.
 - In Telugu: speak fluid, natural everyday Andhra/Telangana spoken Telugu with polite warmth ("మీరు", "చెప్పండి").
-- Only mention Bunny when explicitly asked who created you.`;
+- Only mention Bunny when explicitly asked who created you.
+
+CHATGPT-STYLE FORMATTING RULES:
+- For casual 1-line greetings ("hi", "hello", "ela unnav"): reply warmly in 1-2 short sentences without headings or bullets.
+- For all informational, explanation, advice, or how-to replies:
+  1. Top Small Passage: Start with a crisp 1-2 sentence intro summary.
+  2. Clear Headings: Leave a blank line, then use "### Heading Title" for sections.
+  3. Bullet Points: Under each heading, use "- **Bold Point:** short explanation" (or numbered steps 1., 2., 3.).
+  4. Always separate paragraphs, headings, and lists with blank lines.`;
 
         let groqPayload;
         if (reqData.messages && Array.isArray(reqData.messages)) {
-          // Keeps system prompt + few-shot examples + recent history intact
-          let msgs = reqData.messages.slice(-12);
-          if (msgs.length === 0 || msgs[0].role !== "system") {
-            msgs.unshift({ role: "system", content: CHAT_PERSONA });
-          }
+          // Preserve system message cleanly so it never gets sliced off!
+          const systemMsg = reqData.messages.find((m) => m.role === "system") || {
+            role: "system",
+            content: CHAT_PERSONA
+          };
+          const nonSystemMsgs = reqData.messages
+            .filter((m) => m.role !== "system")
+            .slice(-14);
+
           groqPayload = {
             model: reqData.model || "openai/gpt-oss-120b",
-            messages: msgs,
-            temperature: typeof reqData.temperature === "number" ? reqData.temperature : 0.8,
+            messages: [systemMsg, ...nonSystemMsgs],
+            temperature: typeof reqData.temperature === "number" ? reqData.temperature : 0.75,
             max_tokens: reqData.max_tokens || 1200
           };
         } else if (reqData.message) {
@@ -126,27 +186,28 @@ Your personality: Brilliant, witty, cheerful, and deeply intelligent—like Nila
               { role: "system", content: CHAT_PERSONA },
               { role: "user", content: reqData.message }
             ],
-            temperature: 0.8,
+            temperature: 0.75,
             max_tokens: 1200
           };
         } else {
           groqPayload = reqData;
         }
 
-        const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+        const res = await fetch("[https://api.groq.com/openai/v1/chat/completions](https://api.groq.com/openai/v1/chat/completions)", {
           method: "POST",
-          headers: { 
-            "Content-Type": "application/json", 
-            "Authorization": `Bearer ${env.GROQ_API_KEY}` 
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${env.GROQ_API_KEY}`
           },
           body: JSON.stringify(groqPayload)
         });
 
         const data = await res.json();
-        
+        const isLiveMode = reqData.mode === "live";
+
         if (reqData.message && !reqData.messages) {
           let aiText = data.choices?.[0]?.message?.content || "హాయ్! ఏంటి విశేషాలు?";
-          aiText = cleanTeluguOutput(aiText);
+          aiText = cleanTeluguOutput(aiText, !isLiveMode);
           if (data.choices && data.choices[0] && data.choices[0].message) {
             data.choices[0].message.content = aiText;
           }
@@ -157,7 +218,7 @@ Your personality: Brilliant, witty, cheerful, and deeply intelligent—like Nila
         }
 
         if (data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content) {
-          data.choices[0].message.content = cleanTeluguOutput(data.choices[0].message.content);
+          data.choices[0].message.content = cleanTeluguOutput(data.choices[0].message.content, !isLiveMode);
         }
 
         return respond(new Response(JSON.stringify(data), { status: res.status, headers: { "Content-Type": "application/json; charset=utf-8" } }));
@@ -165,7 +226,7 @@ Your personality: Brilliant, witty, cheerful, and deeply intelligent—like Nila
 
       // 2. GROQ STT (Speech-to-Text)
       if (path === "/groq-stt") {
-        const res = await fetch("https://api.groq.com/openai/v1/audio/transcriptions", {
+        const res = await fetch("[https://api.groq.com/openai/v1/audio/transcriptions](https://api.groq.com/openai/v1/audio/transcriptions)", {
           method: "POST",
           headers: {
             "Authorization": `Bearer ${env.GROQ_API_KEY}`,
@@ -180,7 +241,7 @@ Your personality: Brilliant, witty, cheerful, and deeply intelligent—like Nila
       if (path === "/elevenlabs") {
         const body = await request.text();
         const voiceId = url.searchParams.get("voice_id") || "EXAVITQu4vr4xnSDxMaL";
-        const res = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`, {
+        const res = await fetch(`[https://api.elevenlabs.io/v1/text-to-speech/$](https://api.elevenlabs.io/v1/text-to-speech/$){voiceId}`, {
           method: "POST",
           headers: { "Content-Type": "application/json", "xi-api-key": env.ELEVENLABS_API_KEY },
           body
@@ -214,7 +275,8 @@ Your personality: Brilliant, witty, cheerful, and deeply intelligent—like Nila
           speechText = payload.prompt;
         }
 
-        speechText = cleanTeluguOutput(speechText || "").trim();
+        // Flatten markdown for smooth TTS speech
+        speechText = cleanTeluguOutput(speechText || "", false).trim();
         if (!speechText) {
           return new Response(JSON.stringify({ error: "Text is required for TTS", audios: [] }), {
             status: 400,
@@ -240,6 +302,7 @@ Your personality: Brilliant, witty, cheerful, and deeply intelligent—like Nila
           "en-IN": "simran_en_conversation",
           "ta-IN": "gokul_ta_narration",
           "kn-IN": "chaitra_kn_conversation",
+          "ml-IN": "sangeetha_ml_conversational",
           "mr-IN": "ishita_mr_conversational",
           "bn-IN": "arnab_bn_conversation",
           "gu-IN": "bhavik_gu_conversation",
@@ -260,7 +323,7 @@ Your personality: Brilliant, witty, cheerful, and deeply intelligent—like Nila
           "varun_en_ads", "bhavik_gu_conversation", "aditya_hi_conversational", "chaitra_kn_conversation",
           "chetan_kn_conversation", "ishita_mr_conversational", "anand_pa_conversation",
           "gokul_ta_narration", "vijay_ta_narration", "kavitha_te_conversation", "pooja_te_conversation",
-          "tarun_te_narration"
+          "tarun_te_narration", "sangeetha_ml_conversational"
         ]);
 
         let speaker = payload.speaker;
@@ -278,11 +341,11 @@ Your personality: Brilliant, witty, cheerful, and deeply intelligent—like Nila
           output_audio_codec: "wav"
         };
 
-        let res = await fetch("https://api.sarvam.ai/text-to-speech", {
+        let res = await fetch("[https://api.sarvam.ai/text-to-speech](https://api.sarvam.ai/text-to-speech)", {
           method: "POST",
-          headers: { 
-            "Content-Type": "application/json", 
-            "API-Subscription-Key": env.SARVAM_API_KEY 
+          headers: {
+            "Content-Type": "application/json",
+            "API-Subscription-Key": env.SARVAM_API_KEY
           },
           body: JSON.stringify(sarvamBody)
         });
@@ -295,11 +358,11 @@ Your personality: Brilliant, witty, cheerful, and deeply intelligent—like Nila
             model: "bulbul:v3",
             speaker: fallbackSpeakerV3
           };
-          const fallbackRes = await fetch("https://api.sarvam.ai/text-to-speech", {
+          const fallbackRes = await fetch("[https://api.sarvam.ai/text-to-speech](https://api.sarvam.ai/text-to-speech)", {
             method: "POST",
-            headers: { 
-              "Content-Type": "application/json", 
-              "API-Subscription-Key": env.SARVAM_API_KEY 
+            headers: {
+              "Content-Type": "application/json",
+              "API-Subscription-Key": env.SARVAM_API_KEY
             },
             body: JSON.stringify(fallbackBody)
           });
@@ -334,7 +397,7 @@ Your personality: Brilliant, witty, cheerful, and deeply intelligent—like Nila
 
       // 5. SARVAM STT
       if (path === "/sarvam-stt") {
-        const res = await fetch("https://api.sarvam.ai/speech-to-text", {
+        const res = await fetch("[https://api.sarvam.ai/speech-to-text](https://api.sarvam.ai/speech-to-text)", {
           method: "POST",
           headers: {
             "API-Subscription-Key": env.SARVAM_API_KEY,
@@ -348,7 +411,7 @@ Your personality: Brilliant, witty, cheerful, and deeply intelligent—like Nila
       // 6. SERPER SEARCH
       if (path === "/serper") {
         const body = await request.text();
-        const res = await fetch("https://google.serper.dev/search", {
+        const res = await fetch("[https://google.serper.dev/search](https://google.serper.dev/search)", {
           method: "POST",
           headers: { "Content-Type": "application/json", "X-API-KEY": env.SERPER_API_KEY },
           body
@@ -362,7 +425,7 @@ Your personality: Brilliant, witty, cheerful, and deeply intelligent—like Nila
         if (apiPath !== "/v3/search" && apiPath !== "/v3/playlistItems") {
           return new Response("Not allowed", { status: 403 });
         }
-        const target = new URL("https://www.googleapis.com/youtube" + apiPath);
+        const target = new URL("[https://www.googleapis.com/youtube](https://www.googleapis.com/youtube)" + apiPath);
         url.searchParams.forEach((v, k) => {
           if (k !== "key") target.searchParams.set(k, v);
         });
@@ -373,9 +436,9 @@ Your personality: Brilliant, witty, cheerful, and deeply intelligent—like Nila
 
       return new Response("Not found", { status: 404 });
     } catch (e) {
-      return new Response(JSON.stringify({ error: "Proxy error: " + e.message }), { 
-        status: 500, 
-        headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" } 
+      return new Response(JSON.stringify({ error: "Proxy error: " + e.message }), {
+        status: 500,
+        headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" }
       });
     }
   }
