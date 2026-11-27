@@ -66,7 +66,7 @@ LANGUAGE & SCRIPT POLICY:
 - Keep common technical words in English (app, download, login, server, link, internet, mobile).
 - Address the user respectfully by default (Telugu: మీరు, Hindi: आप, Tamil: நீங்கள், Malayalam: നിങ്ങൾ, Kannada: ನೀವು).
 - STRICT TELUGU SCRIPT HYGIENE: NEVER fuse Telugu and English letters inside one word (never write broken hybrids like "గhee"). Separate English loanwords with spaces or use exact everyday Telugu words (బాస్మతి బియ్యం = raw rice before cooking [never బాస్మతి అన్నం], నెయ్యి = ghee [never వెన్న/గీ], పెరుగు = curd/yogurt [never దయి], కొత్తిమీర = cilantro leaves, ధనియాలు = coriander seeds, గోధుమ పిండి = dough [never పొట్టు], మందపాటి గిన్నె = heavy pot [never బాటిల్/వెండి పాన్], వడ్డించడం = serve food [never సేవించడం], రైతా = raita [never రాయితీ], దమ్ = steam seal [never దంప్/దుమ్], మారినేట్ చేసి పక్కన ఉంచండి = marinate & rest [never మరిగించండి = boil], పసుపు = turmeric [never హల్దీ]).
-- MORE TELUGU KITCHEN WORDS: పెరుగు = yogurt [never యోగర్ట్], యాలకులు = cardamom [never కార్డమోమ్], బిర్యానీ ఆకు = bay leaf [never బే లీఫ్], రైతా [never రైటా], వడ్డించడం = serving [never సేవ], మసాలా పట్టించండి = coat with masala [never మసాలా పూయండి], మందపాటి గిన్నె = heavy-bottom pot [never బరువు ఉన్న పాన్].
+- MORE TELUGU KITCHEN WORDS: పెరుగు = yogurt [never యోగర్ట్], యాలకులు = cardamom [never కార్డమోమ్], బిర్యానీ ఆకు = bay leaf [never బే లీఫ్], రైతా [never రైటా], వడ్డించడం = serving [never సేవ], మసాలా పట్టించండి = coat with masala [never మసాలా పూయండి], మందపాటి గిన్నె = heavy-bottom pot [never బరువు ఉన్న పాన్], ఆవాలు = mustard seeds [never మస్టర్డ్ సీడ్స్], కారం = red chili powder [never మిరియాల పొడి, which is black pepper], కొత్తిమీర = cilantro leaves (pair with పుదీనా, never ధనియాలు), యాలకులు = cardamom (the ONLY word for it; never కారదమోము, and never list cardamom twice).
 
 REASONING, LOGIC & PRACTICAL STEP DISCIPLINE (CRITICAL):
 - Before answering ANY logic puzzle, riddle, trick question, math word problem, probability problem, or multi-step question:
@@ -93,6 +93,7 @@ RESPONSE SIZE & BEHAVIOR (PROFESSIONAL ASSISTANT STYLE, STRICT):
 - NEVER end with a generic offer such as "Anything else you want to know?", "ఇంకేమైనా తెలుసుకోవాలనుకుంటున్నారా?", "Let me know if you'd like..." or "What can I help you with?". Stop when the answer is complete; ask a follow-up ONLY when it is genuinely needed to continue.
 - NEVER repeat anything you already said earlier in the conversation. If asked again, answer in fresh, shorter words or a one-line confirmation. Never write the same sentence or paragraph twice in one reply.
 - If the request is ambiguous, ask ONE short clarifying question instead of guessing at length.
+- UNCLEAR OR AMBIGUOUS WORDS (STRICT): if a word is unknown, misspelled, or could mean different things (especially Romanized Indic words, e.g. "pamu" = snake vs "pappu" = lentils/dal), NEVER silently guess and NEVER invent a dish, word, or gloss like "X (Y)". Ask ONE short clarifying question offering the 1-2 most likely meanings. Obvious typos (briyani = biryani, chyali = cheyali) are simply understood without comment.
 - NO GREETING OPENERS ON QUESTIONS: never start answers with "Hi!", "Hey!", "Hello!", "Sure!", or "Here is...". Only greet back when the user's message is itself a greeting; then reply warmly in 1-2 short sentences.
 - For descriptive points use "- **Real Topic Name:** explanation" and for procedures "1. **Real Step Name:** instruction". NEVER print placeholder text like "Bold Lead-in".
 
@@ -767,7 +768,8 @@ function assembleSystemPrompt(options = {}) {
 - Treat this as a high-precision reasoning, puzzle, math, or technical problem.
 - Check EVERY premise and wording literally for tricks, hidden constraints, boundary cases, or misdirection before committing to an answer.
 - Explicitly verify your candidate solution against EVERY given condition in the prompt before writing the final response.
-- If the problem lacks enough information or has an impossible premise, point that out directly instead of inventing assumptions.`;
+- If the problem lacks enough information or has an impossible premise, point that out directly instead of inventing assumptions.
+- For recipes: include every classic step (e.g. biryani needs marinating the meat/veg with yogurt and spices, par-boiled rice, then dum), use correct everyday ingredient names, and never list the same ingredient twice under two different names.`;
   }
 
   // Append Dynamic Blocks
@@ -985,6 +987,16 @@ function cleanTeluguSegment(text, mode = "chat") {
   t = t.replace(/మసాలా\s*పూసిన/gu, "మసాలా పట్టించిన");
   t = t.replace(/బరువు\s*ఉన్న\s*పాన్[\u200C\u200D]?\s*లో/gu, "మందపాటి గిన్నెలో");
   t = t.replace(/ముద్దతో\s*బిగించండి/gu, "గోధుమ పిండి ముద్దతో సీల్ చేయండి");
+  t = t.replace(/కారదమోము|కారదమోమ్|కార్డమోము/gu, "యాలకులు");
+  t = t.replace(/మస్టర్డ్\s*సీడ్స్/gu, "ఆవాలు");
+  t = t.replace(/(పుదీనా[\s,\u2011\u2013-]*(?:మరియు\s*)?)ధనియాలు/gu, "$1కొత్తిమీర");
+  t = t.replace(/ధనియాలు([\s,]*(?:మరియు\s*)?పుదీనా)/gu, "కొత్తిమీర$1");
+  t = t.replace(/([\u0C00-\u0C7F]{2,})\s*\(\s*\1\s*\)/gu, "$1");
+  t = t.split("\n").map(line => {
+    if ((line.match(/యాలకులు/gu) || []).length < 2) return line;
+    let n = 0;
+    return line.replace(/(?:,\s*|\s+)?(?:[\d½¼¾]+(?:\.\d+)?\s*)?(?:టీస్పూన్|టేబుల్[\u200C\u200D]?స్పూన్)?\s*యాలకులు/gu, m => (++n === 1 ? m : ""));
+  }).join("\n");
   t = t.replace(/\bచెప్పు\s+రా\b/gi, "చెప్పండి");
   t = t.replace(/\bబాధపడకు\s+రా\b/gi, "బాధపడకండి");
   t = t.replace(/\bఏమైంది\s+రా\b/gi, "ఏమైంది");
