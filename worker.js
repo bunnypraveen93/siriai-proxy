@@ -94,6 +94,8 @@ RESPONSE SIZE & BEHAVIOR (PROFESSIONAL ASSISTANT STYLE, STRICT):
 - NEVER repeat anything you already said earlier in the conversation. If asked again, answer in fresh, shorter words or a one-line confirmation. Never write the same sentence or paragraph twice in one reply.
 - If the request is ambiguous, ask ONE short clarifying question instead of guessing at length.
 - UNCLEAR OR AMBIGUOUS WORDS (STRICT): if a word is unknown, misspelled, or could mean different things (especially Romanized Indic words, e.g. "pamu" = snake vs "pappu" = lentils/dal), NEVER silently guess and NEVER invent a dish, word, or gloss like "X (Y)". Ask ONE short clarifying question offering the 1-2 most likely meanings. Obvious typos (briyani = biryani, chyali = cheyali) are simply understood without comment.
+- FACTS ABOUT PEOPLE & CURRENT OFFICES (STRICT): offices change. Who currently holds a post (CM, PM, CEO, etc.) must come ONLY from <search_context>, never from memory. Never invent biographies, parties, birth years, or family relations. If the search context does not contain the answer, say you are not sure.
+- NEVER agree with a claim just because the user phrased it as a question ("...aa?", "right?", "kada?"). Check it against the search context or solid knowledge; if it is wrong, politely correct it; if unsure, say so.
 - NO GREETING OPENERS ON QUESTIONS: never start answers with "Hi!", "Hey!", "Hello!", "Sure!", or "Here is...". Only greet back when the user's message is itself a greeting; then reply warmly in 1-2 short sentences.
 - For descriptive points use "- **Real Topic Name:** explanation" and for procedures "1. **Real Step Name:** instruction". NEVER print placeholder text like "Bold Lead-in".
 
@@ -170,7 +172,7 @@ const ENGLISH_VOCAB_REGEX = /\b(the|is|are|am|was|were|be|been|have|has|had|do|d
 
 const STRONG_ENGLISH_GRAMMAR_REGEX = /\b(the|is|are|was|were|have|has|had|do|does|did|can|could|would|should|will|about|with|from|because|explain|what|which|where|how|why|who|this|that|these|those|please|english)\b/gi;
 
-const TELUGU_ROMANIZED_STRONG_REGEX = /\b(nuvvu|nenu|naaku|naku|neeku|meeru|manam|unnav|unnaru|unnava|unnadu|unnadhi|undi|undhi|enti|emiti|emito|emaina|emaindi|emaindhi|cheppu|cheppandi|cheppava|cheyi|chey|cheyandi|cheyyali|cheptha|chepthava|chesava|chesaru|chesthunna|chesthunnav|chesthunnaru|chestunna|chestunnav|chestunnaru|thinnava|tinnava|thinnara|thinnanu|tinnanu|bagunnava|bagunnav|bagunnara|bagunnanu|bagundi|baagundi|baagunnava|kavali|kaavali|vaddu|ledu|enduku|ekkada|eppudu|evaru|entha|ayindi|ayyindi|avuthundi|avunu|aunu|avuna|ikkada|akkada|gurinchi|ippudu|ayyo|kadha|chudu|chudandi|vinandi|telusa|teliyadu|matladu|matladandi|eroju|repu|ninna|konchem|manchi|antha|intha|vishayam|sahayam|bhojanam|neellu|kuda|kaani|aithe|lekapothe|vachindi|vachanu|vellali|vastunna|vasthunna|antunna|kaadu|podam|veldam|inkoka|inkenti|visheshalu|cheddam|parvaledu|parledhu|paravaledu|yela|yenti|yemi|chyali|chyandi|chyadam|chesindi|ninnu|nannu|telugulo)\b/gi;
+const TELUGU_ROMANIZED_STRONG_REGEX = /\b(nuvvu|nenu|naaku|naku|neeku|meeru|manam|unnav|unnaru|unnava|unnadu|unnadhi|undi|undhi|enti|emiti|emito|emaina|emaindi|emaindhi|cheppu|cheppandi|cheppava|cheyi|chey|cheyandi|cheyyali|cheptha|chepthava|chesava|chesaru|chesthunna|chesthunnav|chesthunnaru|chestunna|chestunnav|chestunnaru|thinnava|tinnava|thinnara|thinnanu|tinnanu|bagunnava|bagunnav|bagunnara|bagunnanu|bagundi|baagundi|baagunnava|kavali|kaavali|vaddu|ledu|enduku|ekkada|eppudu|evaru|entha|ayindi|ayyindi|avuthundi|avunu|aunu|avuna|ikkada|akkada|gurinchi|ippudu|ayyo|kadha|chudu|chudandi|vinandi|telusa|teliyadu|matladu|matladandi|eroju|repu|ninna|konchem|manchi|antha|intha|vishayam|sahayam|bhojanam|neellu|kuda|kaani|aithe|lekapothe|vachindi|vachanu|vellali|vastunna|vasthunna|antunna|kaadu|podam|veldam|inkoka|inkenti|visheshalu|cheddam|parvaledu|parledhu|paravaledu|yela|yenti|yemi|chyali|chyandi|chyadam|chesindi|ninnu|nannu|telugulo|yevaru|yaevaru|gurnchi|gurunchi|yermana|ermana|nanna)\b/gi;
 
 const TELUGU_ROMANIZED_WEAK_OR_COLLOCATION_REGEX = /\b(em\s+(?:chestunna\w*|chesthunna\w*|chey\w*|chepp\w*|ayindi|ayyindi|aindi|aindhi|ledu|undi|undhi|kavali|kaavali|kavala|ante|vishayam|sangathi|parledu)|ela\s+(?:unnav\w*|unnaru|undi|undhi|chey\w*|chepp\w*|vundi|vundhi)|unna|sare|kada|chala|vinu)\b/gi;
 
@@ -458,6 +460,15 @@ function shouldSearch(text, mode = "chat") {
 
   // Year / recency temporal cues (2024-2029) paired with factual question framing
   if (/\b202[4-9]\b/.test(lower) && /\b(who|what|when|which|won|winner|champion|latest|new|released|launched|update|version|price|score|result)\b/i.test(lower)) {
+    return true;
+  }
+
+  // Officeholders / people / "tell me about X" questions must be grounded in live search, never answered from stale memory
+  const roleRegex = /(?<![\d.]\s{0,2})\b(?:cm|pm|mla|mp|chief\s+minister|prime\s+minister|mukhyamantri|governor|minister|president|ceo|speaker|mayor|captain|coach)\b|ముఖ్యమంత్రి|ప్రధాని|మంత్రి|గవర్నర్|ఎమ్మెల్యే|సీఎం|పీఎం/i;
+  const askWhoRegex = /\bwho\s+(?:is|was|are)\b|\btell\s+me\s+about\b|\b(?:ye?a?e?v+aru|evarandi|evaru)\b|gu?r[iu]?n?chi|గురించి|ఎవరు/i;
+  const personFactRegex = /\b(?:nanna|nana|tandri|amma|bharya|bhartha|vayasu|born|father|mother|wife|husband|age|party)\b|తండ్రి|నాన్న|భార్య|వయసు/i;
+  if (/\b(?:hi|hello|hey)\b[!.?\s]*$/i.test(lower)) return false;
+  if ((roleRegex.test(trimmed) && askWhoRegex.test(trimmed)) || (askWhoRegex.test(trimmed) && trimmed.length <= 120 && !/\b(recipe|biryani|briyani|cook|code|function)\b/i.test(lower)) || (personFactRegex.test(trimmed) && trimmed.length <= 120)) {
     return true;
   }
 
@@ -774,6 +785,9 @@ function assembleSystemPrompt(options = {}) {
 
   // Append Dynamic Blocks
   prompt += `\n\n--- DYNAMIC CONTEXT ---`;
+  if (options.searchFailed) {
+    prompt += `\nNO LIVE SEARCH RESULTS AVAILABLE for this question. Your built-in knowledge may be outdated (the year is ${new Date().getFullYear()}). Do NOT state who currently holds an office or post, or any recent facts, from memory. Say you could not verify the latest information and suggest checking a reliable news source.`;
+  }
   if (options.brevityHint) {
     prompt += `\nTHIS TURN: The user's message is short. Answer in 1-3 plain sentences (no headings, bullets, bold or lists) unless they explicitly ask for detail, steps, a list, or code.`;
   }
@@ -1164,11 +1178,18 @@ export default {
         const mathVerification = evaluateSafeMathQuery(latestUserText);
         let searchSnippets = null;
         let searchExecuted = false;
+        let searchFailed = false;
         const serperKey = getCleanSecret(env, "SERPER_API_KEY");
-        if (shouldSearch(latestUserText, reqMode) && serperKey) {
-          const searchQuery = extractSearchQuery(latestUserText);
+        const wantsSearch = shouldSearch(latestUserText, reqMode);
+        if (wantsSearch && !serperKey) searchFailed = true;
+        if (wantsSearch && serperKey) {
+          let searchQuery = extractSearchQuery(latestUserText);
+          if (reqMode !== "live") {
+            const rewritten = await rewriteSearchQuery(groqKey, latestUserText, priorHistoryMessages);
+            if (rewritten) searchQuery = rewritten;
+          }
           searchSnippets = await fetchSerperSnippets(searchQuery, serperKey, reqMode === "live" ? 2500 : 8000);
-          if (searchSnippets) searchExecuted = true;
+          if (searchSnippets) searchExecuted = true; else searchFailed = true;
         }
 
         // Step D: Generation Parameters & Language-Aware Output Cap
@@ -1195,6 +1216,7 @@ export default {
           timezone: reqData.timezone || "Asia/Kolkata",
           userProfile: reqData.user_profile || null,
           brevityHint: reqMode === "chat" && !routed.isDeep && latestUserText.trim().length <= 90,
+          searchFailed,
           scriptPreference: reqData.script_preference || null
         });
 
@@ -1537,6 +1559,29 @@ export default {
     }
   }
 };
+
+async function rewriteSearchQuery(groqKey, text, history) {
+  try {
+    const recent = (history || []).slice(-4).map(m => `${m.role}: ${String(m.content || "").slice(0, 200)}`).join("\n");
+    const payload = {
+      model: "openai/gpt-oss-20b",
+      messages: [
+        { role: "system", content: `Rewrite the user's last message as ONE concise English Google search query (max 10 words). The message may be Romanized Telugu/Hindi/Tamil with typos: understand it. Resolve pronouns and follow-ups (his, her, valla, aayana) using the conversation context. For current officeholders or recent events include the word "current" and the year ${new Date().getFullYear()}. Output ONLY the query, no quotes, no explanation.` },
+        { role: "user", content: `Conversation:\n${recent || "(none)"}\n\nLast message: ${text}` }
+      ],
+      temperature: 0,
+      max_completion_tokens: 220
+    };
+    applyReasoningParams(payload, "openai/gpt-oss-20b", "low");
+    const res = await callGroqChat(groqKey, payload, 4000);
+    if (!res.ok) return null;
+    const data = await res.json();
+    const q = (data.choices?.[0]?.message?.content || "").replace(/^["'\s]+|["'\s]+$/g, "").split("\n")[0].trim();
+    return (q.length >= 3 && q.length <= 120) ? q : null;
+  } catch (e) {
+    return null;
+  }
+}
 
 async function callGroqChat(groqKey, payload, timeoutMs = 25000) {
   return await fetchWithTimeout("https://api.groq.com/openai/v1/chat/completions", {
