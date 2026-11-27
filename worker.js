@@ -1255,19 +1255,93 @@ async function fetchCryptoPrice(cryptoAsset, options = {}) {
 /**
  * Keyless Factual / Current Entity Lookup via Wikipedia (compliant User-Agent) + DuckDuckGo Instant Answer JSON
  */
+async function fetchWikidataOfficeholders(wikibaseItem, langCode = "en", timeoutMs = 2500) {
+  if (!wikibaseItem || !/^Q\d+$/i.test(wikibaseItem)) return [];
+  const headers = { "User-Agent": WIKIMEDIA_USER_AGENT, "Accept": "application/json" };
+  try {
+    const entityUrl = `https://www.wikidata.org/w/api.php?action=wbgetentities&ids=${encodeURIComponent(wikibaseItem)}&props=claims&format=json`;
+    const res = await fetchWithTimeout(entityUrl, { headers }, Math.min(timeoutMs, 2400));
+    if (!res.ok) return [];
+    const data = await res.json();
+    const claims = data?.entities?.[wikibaseItem]?.claims;
+    if (!claims || typeof claims !== "object") return [];
+
+    const propLabels = {
+      P1308: "Current Officeholder",
+      P6: "Head of Government",
+      P35: "Head of State",
+      P169: "Current CEO",
+      P488: "Chairperson",
+      P286: "Head Coach"
+    };
+    const picked = [];
+    for (const prop of ["P1308", "P6", "P35", "P169", "P488", "P286"]) {
+      const list = Array.isArray(claims[prop]) ? claims[prop] : [];
+      if (!list.length) continue;
+      const active = list
+        .filter(c => c?.rank !== "deprecated" && !c?.qualifiers?.P582 && c?.mainsnak?.datavalue?.value?.id)
+        .sort((a, b) => {
+          const rankScore = (r) => (r === "preferred" ? 2 : 1);
+          const diff = rankScore(b.rank) - rankScore(a.rank);
+          if (diff !== 0) return diff;
+          const tA = a?.qualifiers?.P580?.[0]?.datavalue?.value?.time || "";
+          const tB = b?.qualifiers?.P580?.[0]?.datavalue?.value?.time || "";
+          return tB.localeCompare(tA);
+        });
+      for (const item of active.slice(0, 2)) {
+        const id = item.mainsnak.datavalue.value.id;
+        const sinceRaw = item?.qualifiers?.P580?.[0]?.datavalue?.value?.time || "";
+        const since = sinceRaw ? sinceRaw.replace(/^\+/, "").slice(0, 7).replace(/-00$/, "") : "";
+        picked.push({ id, role: propLabels[prop] || "Holder", since });
+      }
+      if (picked.length >= 2) break;
+    }
+
+    if (!picked.length) return [];
+    const uniqueIds = [...new Set(picked.map(p => p.id))];
+    const langs = (langCode === "te") ? "te|en" : (langCode === "hi" ? "hi|en" : "en");
+    const labelsUrl = `https://www.wikidata.org/w/api.php?action=wbgetentities&ids=${encodeURIComponent(uniqueIds.join("|"))}&props=labels|descriptions&languages=${encodeURIComponent(langs)}&format=json`;
+    const lRes = await fetchWithTimeout(labelsUrl, { headers }, Math.min(timeoutMs, 2400));
+    if (!lRes.ok) return [];
+    const lData = await lRes.json();
+
+    const holderLines = [];
+    for (const p of picked) {
+      const ent = lData?.entities?.[p.id];
+      const enName = ent?.labels?.en?.value || "";
+      const localName = ent?.labels?.[langCode]?.value || enName;
+      const name = (localName && enName && localName !== enName) ? `${localName} (${enName})` : (localName || enName);
+      if (!name) continue;
+      const desc = ent?.descriptions?.[langCode]?.value || ent?.descriptions?.en?.value || "";
+      const sinceNote = p.since ? `, since ${p.since}` : "";
+      holderLines.push(`- **${p.role}** (wikidata.org${sinceNote}): **${name}**${desc ? ` — ${desc}` : ""}`);
+    }
+    return holderLines;
+  } catch (e) {
+    return [];
+  }
+}
+
 async function fetchKnowledgeSnippets(query, langCode = "en", options = {}) {
-  const { timeoutMs = 3500, ctx = null } = options;
+  const { timeoutMs = 4000, ctx = null } = options;
   const cleanedTopic = String(query || "")
-    .replace(/\b(?:who\s+is\s+(?:the\s+)?(?:current|present|new)|what\s+is\s+(?:the\s+)?|tell\s+me\s+about)\b/gi, " ")
+    .replace(/^(?:please\s+)?(?:who\s+(?:is|was|are)|what\s+(?:is|was|are)|tell\s+me\s+about)\s+(?:the\s+)?(?:(?:current|present|incumbent|new)\s+)?/gi, " ")
+    .replace(/\b(?:right\s+now|today|currently|at\s+present)\b/gi, " ")
+    .replace(/[?!.,]+/g, " ")
     .replace(/\s+/g, " ")
     .trim();
   if (!cleanedTopic) return null;
 
   const wikiLang = (langCode === "te" || langCode === "hi") ? langCode : "en";
-  const cacheKey = normalizeSearchQueryKey(cleanedTopic, "knowledge", wikiLang);
+  const cacheKey = normalizeSearchQueryKey(cleanedTopic, "knowledge_v2", wikiLang);
   const cached = await readRealtimeCache(cacheKey);
   if (cached && cached.snippets) {
-    return { snippets: cached.snippets, provider: cached.sourceName || "wikipedia+ddg", cacheHit: true };
+    return {
+      snippets: cached.snippets,
+      provider: cached.sourceName || "wikipedia+ddg",
+      hasOfficeHolder: Boolean(cached.hasOfficeHolder),
+      cacheHit: true
+    };
   }
 
   const lines = [];
@@ -1275,19 +1349,20 @@ async function fetchKnowledgeSnippets(query, langCode = "en", options = {}) {
 
   const fetchWikiSummaryForSub = async (sub) => {
     const searchUrl = `https://${sub}.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(cleanedTopic)}&srlimit=1&format=json`;
-    const sRes = await fetchWithTimeout(searchUrl, { headers: wikiHeaders }, Math.min(timeoutMs, 2500));
+    const sRes = await fetchWithTimeout(searchUrl, { headers: wikiHeaders }, Math.min(timeoutMs, 2600));
     if (!sRes.ok) return null;
     const sData = await sRes.json();
     const topTitle = sData?.query?.search?.[0]?.title;
     if (!topTitle) return null;
 
     const sumUrl = `https://${sub}.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(topTitle.replace(/\s+/g, "_"))}`;
-    const rRes = await fetchWithTimeout(sumUrl, { headers: wikiHeaders }, Math.min(timeoutMs, 2500));
+    const rRes = await fetchWithTimeout(sumUrl, { headers: wikiHeaders }, Math.min(timeoutMs, 2600));
     if (!rRes.ok) return null;
     const rData = await rRes.json();
     if (!rData?.extract) return null;
     return {
       title: rData.title || topTitle,
+      wikibaseItem: rData.wikibase_item || "",
       extract: String(rData.extract).replace(/\s+/g, " ").trim().slice(0, 420),
       updated: rData.timestamp ? rData.timestamp.slice(0, 10) : ""
     };
@@ -1302,6 +1377,13 @@ async function fetchKnowledgeSnippets(query, langCode = "en", options = {}) {
 
     const wikiHit = (wikiPrimary.status === "fulfilled" && wikiPrimary.value)
       || (wikiEnFallback.status === "fulfilled" && wikiEnFallback.value);
+    let holderLines = [];
+    if (wikiHit?.wikibaseItem) {
+      holderLines = await fetchWikidataOfficeholders(wikiHit.wikibaseItem, langCode, timeoutMs);
+      if (holderLines.length) {
+        lines.push(...holderLines);
+      }
+    }
     if (wikiHit) {
       const dt = wikiHit.updated ? ` [Updated: ${wikiHit.updated}]` : "";
       lines.push(`- **${wikiHit.title}** (wikipedia.org${dt}): ${wikiHit.extract}`);
@@ -1316,9 +1398,10 @@ async function fetchKnowledgeSnippets(query, langCode = "en", options = {}) {
 
     if (!lines.length) return null;
     const snippets = lines.join("\n");
-    const sourceName = wikiHit ? "wikipedia" : "duckduckgo";
-    await writeRealtimeCache(cacheKey, { snippets, sourceName }, getCacheTtlForCategory("knowledge"), ctx);
-    return { snippets, provider: sourceName, cacheHit: false };
+    const hasOfficeHolder = holderLines.length > 0;
+    const sourceName = hasOfficeHolder ? "wikipedia+wikidata" : (wikiHit ? "wikipedia" : "duckduckgo");
+    await writeRealtimeCache(cacheKey, { snippets, sourceName, hasOfficeHolder }, getCacheTtlForCategory("knowledge"), ctx);
+    return { snippets, provider: sourceName, hasOfficeHolder, cacheHit: false };
   } catch (err) {
     console.error("Knowledge fetch error:", err);
     return null;
@@ -1428,11 +1511,12 @@ async function fetchWikimediaNews(topic = "", wikiLang = "en", options = {}) {
  */
 async function fetchCurrentNewsRSS(topic = "", newsLang = "en", rawQuery = "", options = {}) {
   const { timeoutMs = 4800, ctx = null, maxHeadlines = 5, category = "news", forceSearchFeed = false } = options;
-  const effectiveTopic = (forceSearchFeed ? (topic || rawQuery) : topic).trim();
-  const isWorld = /\b(world|global|international|us|usa|uk|europe|middle east)\b/i.test(effectiveTopic || rawQuery);
+  const rawTopic = (forceSearchFeed ? (topic || rawQuery) : topic).trim();
+  const isWorld = /\b(world|global|international|us|usa|uk|europe|middle east)\b/i.test(rawTopic || rawQuery);
+  const effectiveTopic = /^(?:world|global|international|latest|general|main)$/i.test(rawTopic) ? "" : rawTopic;
   const langKey = (newsLang === "te" || newsLang === "hi") ? newsLang : "en";
 
-  const cacheKey = normalizeSearchQueryKey(effectiveTopic || (isWorld ? "world_top" : "india_top"), `news_fusion_${category}`, `${langKey}_${maxHeadlines}`);
+  const cacheKey = normalizeSearchQueryKey(effectiveTopic || (isWorld ? "world_top" : "india_top"), `news_fusion_v2_${category}`, `${langKey}_${maxHeadlines}`);
   const cached = await readRealtimeCache(cacheKey);
   if (cached && cached.snippets) {
     return { snippets: cached.snippets, provider: cached.provider || "google-news+wikipedia", cacheHit: true };
@@ -1496,10 +1580,13 @@ async function fetchCurrentNewsRSS(topic = "", newsLang = "en", rawQuery = "", o
 
     const combined = [];
     const wikiSlice = Array.isArray(wikiItems) ? wikiItems.slice(0, rssItems.length ? 2 : maxHeadlines) : [];
-    const rssTarget = Math.max(0, maxHeadlines - (wikiSlice.length ? Math.min(1, wikiSlice.length) : 0));
+    const wikiReserve = wikiSlice.length ? Math.min(wikiSlice.length, maxHeadlines >= 5 ? (isWorld ? 2 : 1) : 1) : 0;
+    const rssTake = Math.max(0, maxHeadlines - wikiReserve);
 
-    combined.push(...rssItems.slice(0, rssTarget + 2));
-    combined.push(...wikiSlice);
+    combined.push(...rssItems.slice(0, rssTake));
+    combined.push(...wikiSlice.slice(0, wikiReserve));
+    combined.push(...rssItems.slice(rssTake, rssTake + 4));
+    combined.push(...wikiSlice.slice(wikiReserve));
 
     if (!combined.length) return null;
 
@@ -1574,6 +1661,23 @@ async function resolveRealtimeContext(queryText, options = {}) {
     }
   } else if (intent.category === "knowledge") {
     result = await fetchKnowledgeSnippets(intent.cleanQuery, langCode, { timeoutMs: fastTimeout, ctx });
+    const asksCurrentOffice = /\b(?:current|present|incumbent|who\s+is\s+(?:the\s+)?(?:chief\s+minister|prime\s+minister|cm|pm|president|governor|ceo|chairman))\b/i.test(queryText);
+    if (asksCurrentOffice && result && !result.hasOfficeHolder && result.provider === "wikipedia") {
+      const rssAugment = await fetchCurrentNewsRSS(intent.cleanQuery, intent.newsLang, intent.cleanQuery, {
+        timeoutMs: Math.min(fastTimeout, 3500),
+        ctx,
+        maxHeadlines: 3,
+        category: "knowledge",
+        forceSearchFeed: true
+      });
+      if (rssAugment && rssAugment.snippets) {
+        result = {
+          ...result,
+          provider: "wikipedia+google-news",
+          snippets: `${result.snippets}\n\nRecent related news:\n${rssAugment.snippets}`
+        };
+      }
+    }
   } else if (intent.category === "general") {
     const needsNumericWebTable = /\b(gold\s+rate|silver\s+rate|petrol|diesel|sensex|nifty|share\s+price|stock\s+price|train\s+status|search\s+for|search\s+on\s+google)\b|(బంగారం\s*ధర|వెండి\s*ధర|పెట్రోల్)/i.test(queryText);
     if (!needsNumericWebTable || !getSerperApiKeys(env).length || Date.now() < serperExhaustedUntil) {
@@ -2197,6 +2301,7 @@ export default {
             "bbc-rss",
             "wikimedia-news",
             "wikipedia",
+            "wikidata",
             "nominatim",
             "duckduckgo",
             "serper-fallback"
