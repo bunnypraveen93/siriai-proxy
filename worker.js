@@ -2408,7 +2408,6 @@ export default {
         let aiText = aiChoice?.message?.content || "";
         let finishReason = aiChoice?.finish_reason || "stop";
 
-        const liveFallbackModel = NAKSHATRA_CONFIG.routing.tiers.find(t => t.name === "live")?.fallback_model || "openai/gpt-oss-120b";
         const chatFallbackChain = [liveFallbackModel, "qwen/qwen3.8-27b", "openai/gpt-oss-20b"]
           .filter((m, idx, arr) => m !== selectedModel && arr.indexOf(m) === idx);
         const fallbackCandidates = (reqMode === "live")
