@@ -66,6 +66,7 @@ LANGUAGE & SCRIPT POLICY:
 - Keep common technical words in English (app, download, login, server, link, internet, mobile).
 - Address the user respectfully by default (Telugu: మీరు, Hindi: आप, Tamil: நீங்கள், Malayalam: നിങ്ങൾ, Kannada: ನೀವು).
 - STRICT TELUGU SCRIPT HYGIENE: NEVER fuse Telugu and English letters inside one word (never write broken hybrids like "గhee"). Separate English loanwords with spaces or use exact everyday Telugu words (బాస్మతి బియ్యం = raw rice before cooking [never బాస్మతి అన్నం], నెయ్యి = ghee [never వెన్న/గీ], పెరుగు = curd/yogurt [never దయి], కొత్తిమీర = cilantro leaves, ధనియాలు = coriander seeds, గోధుమ పిండి = dough [never పొట్టు], మందపాటి గిన్నె = heavy pot [never బాటిల్/వెండి పాన్], వడ్డించడం = serve food [never సేవించడం], రైతా = raita [never రాయితీ], దమ్ = steam seal [never దంప్/దుమ్], మారినేట్ చేసి పక్కన ఉంచండి = marinate & rest [never మరిగించండి = boil], పసుపు = turmeric [never హల్దీ]).
+- MORE TELUGU KITCHEN WORDS: పెరుగు = yogurt [never యోగర్ట్], యాలకులు = cardamom [never కార్డమోమ్], బిర్యానీ ఆకు = bay leaf [never బే లీఫ్], రైతా [never రైటా], వడ్డించడం = serving [never సేవ], మసాలా పట్టించండి = coat with masala [never మసాలా పూయండి], మందపాటి గిన్నె = heavy-bottom pot [never బరువు ఉన్న పాన్].
 
 REASONING, LOGIC & PRACTICAL STEP DISCIPLINE (CRITICAL):
 - Before answering ANY logic puzzle, riddle, trick question, math word problem, probability problem, or multi-step question:
@@ -89,6 +90,7 @@ RESPONSE SIZE & BEHAVIOR (PROFESSIONAL ASSISTANT STYLE, STRICT):
 - Medium questions (explain, why, how does X work): a short paragraph (about 60-120 words). Use a small list only when there are 3+ truly parallel items.
 - Use ### headings and numbered or bulleted structure ONLY for long tasks the user asks for: step-by-step guides, recipes, detailed comparisons, essays, code walkthroughs.
 - Never pad: no restating the question, no repeated intro, no "In conclusion", no closing recap, no unnecessary disclaimers.
+- NEVER end with a generic offer such as "Anything else you want to know?", "ఇంకేమైనా తెలుసుకోవాలనుకుంటున్నారా?", "Let me know if you'd like..." or "What can I help you with?". Stop when the answer is complete; ask a follow-up ONLY when it is genuinely needed to continue.
 - NEVER repeat anything you already said earlier in the conversation. If asked again, answer in fresh, shorter words or a one-line confirmation. Never write the same sentence or paragraph twice in one reply.
 - If the request is ambiguous, ask ONE short clarifying question instead of guessing at length.
 - NO GREETING OPENERS ON QUESTIONS: never start answers with "Hi!", "Hey!", "Hello!", "Sure!", or "Here is...". Only greet back when the user's message is itself a greeting; then reply warmly in 1-2 short sentences.
@@ -167,7 +169,7 @@ const ENGLISH_VOCAB_REGEX = /\b(the|is|are|am|was|were|be|been|have|has|had|do|d
 
 const STRONG_ENGLISH_GRAMMAR_REGEX = /\b(the|is|are|was|were|have|has|had|do|does|did|can|could|would|should|will|about|with|from|because|explain|what|which|where|how|why|who|this|that|these|those|please|english)\b/gi;
 
-const TELUGU_ROMANIZED_STRONG_REGEX = /\b(nuvvu|nenu|naaku|naku|neeku|meeru|manam|unnav|unnaru|unnava|unnadu|unnadhi|undi|undhi|enti|emiti|emito|emaina|emaindi|emaindhi|cheppu|cheppandi|cheppava|cheyi|chey|cheyandi|cheyyali|cheptha|chepthava|chesava|chesaru|chesthunna|chesthunnav|chesthunnaru|chestunna|chestunnav|chestunnaru|thinnava|tinnava|thinnara|thinnanu|tinnanu|bagunnava|bagunnav|bagunnara|bagunnanu|bagundi|baagundi|baagunnava|kavali|kaavali|vaddu|ledu|enduku|ekkada|eppudu|evaru|entha|ayindi|ayyindi|avuthundi|avunu|aunu|avuna|ikkada|akkada|gurinchi|ippudu|ayyo|kadha|chudu|chudandi|vinandi|telusa|teliyadu|matladu|matladandi|eroju|repu|ninna|konchem|manchi|antha|intha|vishayam|sahayam|bhojanam|neellu|kuda|kaani|aithe|lekapothe|vachindi|vachanu|vellali|vastunna|vasthunna|antunna|kaadu|podam|veldam|inkoka|inkenti|visheshalu|cheddam|parvaledu|parledhu|paravaledu)\b/gi;
+const TELUGU_ROMANIZED_STRONG_REGEX = /\b(nuvvu|nenu|naaku|naku|neeku|meeru|manam|unnav|unnaru|unnava|unnadu|unnadhi|undi|undhi|enti|emiti|emito|emaina|emaindi|emaindhi|cheppu|cheppandi|cheppava|cheyi|chey|cheyandi|cheyyali|cheptha|chepthava|chesava|chesaru|chesthunna|chesthunnav|chesthunnaru|chestunna|chestunnav|chestunnaru|thinnava|tinnava|thinnara|thinnanu|tinnanu|bagunnava|bagunnav|bagunnara|bagunnanu|bagundi|baagundi|baagunnava|kavali|kaavali|vaddu|ledu|enduku|ekkada|eppudu|evaru|entha|ayindi|ayyindi|avuthundi|avunu|aunu|avuna|ikkada|akkada|gurinchi|ippudu|ayyo|kadha|chudu|chudandi|vinandi|telusa|teliyadu|matladu|matladandi|eroju|repu|ninna|konchem|manchi|antha|intha|vishayam|sahayam|bhojanam|neellu|kuda|kaani|aithe|lekapothe|vachindi|vachanu|vellali|vastunna|vasthunna|antunna|kaadu|podam|veldam|inkoka|inkenti|visheshalu|cheddam|parvaledu|parledhu|paravaledu|yela|yenti|yemi|chyali|chyandi|chyadam|chesindi|ninnu|nannu|telugulo)\b/gi;
 
 const TELUGU_ROMANIZED_WEAK_OR_COLLOCATION_REGEX = /\b(em\s+(?:chestunna\w*|chesthunna\w*|chey\w*|chepp\w*|ayindi|ayyindi|aindi|aindhi|ledu|undi|undhi|kavali|kaavali|kavala|ante|vishayam|sangathi|parledu)|ela\s+(?:unnav\w*|unnaru|undi|undhi|chey\w*|chepp\w*|vundi|vundhi)|unna|sare|kada|chala|vinu)\b/gi;
 
@@ -426,6 +428,10 @@ function detectLanguage(text, options = {}) {
   }
 
   if (/^[a-zA-Z0-9\s.,!?'"~@#$%^&*()_\-+=/<>:;]+$/.test(t)) {
+    // Unknown Latin-letter text during an active non-English chat = misspelled Tenglish/Hinglish, never a silent flip to English
+    if (prevLang && prevLang !== "en") {
+      return buildLangResult(prevLang, { switchReason: "keep_prev_latin_unknown" });
+    }
     return buildLangResult("en", { switched: Boolean(prevLang && prevLang !== "en"), switchReason: "ascii_fallback" });
   }
 
@@ -784,7 +790,7 @@ function assembleSystemPrompt(options = {}) {
   const langCode = language.code || "en";
   const langName = language.name || "English";
   const langScript = language.script || "Latin";
-  const forceNativeScript = isLive || scriptPreference === "native";
+  const forceNativeScript = isLive || scriptPreference !== "romanized";
 
   if (language.isRomanized && !forceNativeScript) {
     prompt += `\nACTIVE LANGUAGE: ${langName} (${langCode.toUpperCase()}) written in LATIN letters (Romanized / Tenglish / Hinglish). Reply in that authentic conversational romanized style!`;
@@ -873,6 +879,21 @@ function cleanTeluguOutput(text, mode = "chat") {
   }).join('').trim();
 }
 
+function stripGenericClosers(text) {
+  if (!text || typeof text !== "string") return text;
+  const patterns = [
+    /\s*(?:ఇంకేమైనా|ఇంకా\s*ఏమైనా|ఇంకా\s*ఏవైనా)[^.?!\u0964\n]*?(?:తెలుసుకోవాలనుకుంటున్నారా|కావాలా|చెప్పండి)\s*[.?!\u0964]?\s*$/u,
+    /\s*(?:Is there anything else|Anything else|Would you like to know (?:more|anything else)|Do you want to know (?:more|anything else)|What can I help you with)[^.?!\n]*[.?!]?\s*$/i,
+    /\s*Let me know if you(?:'d| would)? (?:like|need|want)[^.!?\n]*[.!?]?\s*$/i
+  ];
+  let out = text;
+  for (const p of patterns) {
+    const next = out.replace(p, "");
+    if (next !== out && next.trim().length >= 12) out = next;
+  }
+  return out.trim();
+}
+
 function dedupeRepeatedBlocks(text) {
   if (!text || typeof text !== "string") return text;
   const seen = new Set();
@@ -955,6 +976,15 @@ function cleanTeluguSegment(text, mode = "chat") {
   t = t.replace(/[“"]?(?:దంప్|దుమ్|డంప్)[”"]?/gu, "దమ్");
   t = t.replace(/(\d+\s*నిమిషాలు\s*)మరిగించండి(?=\s*(?:[.,\n]|$))/gu, "$1పక్కన ఉంచండి");
   t = t.replace(/\s*\((?:సుమారు\s*)?\d+\s*W\)/giu, "");
+  t = t.replace(/యోగ(?:ర్)?ట్/gu, "పెరుగు");
+  t = t.replace(/కార్డమోమ్|కార్డమమ్|కార్డమం/gu, "యాలకులు");
+  t = t.replace(/బే\s*లీఫ్/gu, "బిర్యానీ ఆకు");
+  t = t.replace(/రైటా/gu, "రైతా");
+  t = t.replace(/(^|\n)(\s*(?:\d+\.\s*)?(?:\*\*)?)సేవ(\s*[:：])/gu, "$1$2వడ్డించడం$3");
+  t = t.replace(/మసాలా\s*పూయండి/gu, "మసాలా పట్టించండి");
+  t = t.replace(/మసాలా\s*పూసిన/gu, "మసాలా పట్టించిన");
+  t = t.replace(/బరువు\s*ఉన్న\s*పాన్[\u200C\u200D]?\s*లో/gu, "మందపాటి గిన్నెలో");
+  t = t.replace(/ముద్దతో\s*బిగించండి/gu, "గోధుమ పిండి ముద్దతో సీల్ చేయండి");
   t = t.replace(/\bచెప్పు\s+రా\b/gi, "చెప్పండి");
   t = t.replace(/\bబాధపడకు\s+రా\b/gi, "బాధపడకండి");
   t = t.replace(/\bఏమైంది\s+రా\b/gi, "ఏమైంది");
@@ -1289,6 +1319,7 @@ export default {
 
         // Step H: Clean Output & Vocal Polish
         aiText = dedupeRepeatedBlocks(cleanTeluguOutput(aiText, reqMode));
+        if (reqMode === "chat") aiText = stripGenericClosers(aiText);
         if (reqMode === "chat" && routed.tier !== "light" && aiText.length > 35) {
           aiText = aiText.replace(/^(?:hi|hello|hey|హాయ్|హలో|హేయ్)(?:\s+there)?[!.,:]+\s+/i, '').trim();
         }
